@@ -1,0 +1,11 @@
+[package]
+name = "mandel-wasm"
+version = "0.1.0"
+authors = ["Adam Wolff <awolff@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+
+[dependencies]
