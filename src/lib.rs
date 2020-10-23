@@ -16,16 +16,19 @@ pub unsafe extern fn render_js() {
 fn render_safe(buffer: &mut [u32; MAX_PIXELS]) {
     let width = 800;
     let height = 800;
-    let scale = 1.0/386.0 as f64;
-    let scale_x = width as f64/ scale;
-    let scale_y = height as f64 / scale;
+    let ax = -2.0;
+    let ay = -2.0;
+    let bx = 2.0;
+    let by = 2.0;
+    let scale_x = width as f64/(bx-ax);
+    let scale_y = height as f64/(by-ay);
 
     //console::log_2(&"Rogging arbitrary values looks like".into(), &width.into());
 
     for px in 0..width {
         for py in 0..height {
-            let cx = scale * (px ) as f64;
-            let cy = scale * (py ) as f64;
+            let cx = ax + px as f64 / scale_x;
+            let cy = ay + py as f64 / scale_y;
             let z = calc_z(cx, cy);
             buffer[px + py * width] = as_u32_le( [z, 0, 0, 255]);
         }
