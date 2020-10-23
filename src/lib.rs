@@ -1,3 +1,5 @@
+extern crate num_complex;
+
 const MAX_DIM: usize = 2200;
 const MAX_PIXELS: usize = MAX_DIM * MAX_DIM;
 
@@ -6,16 +8,46 @@ static mut IMG_BUFFER: [u32; MAX_PIXELS] = [0; MAX_PIXELS];
 
 #[no_mangle]
 pub unsafe extern fn render_js() {
-    // This is called from JavaScript, and should *only* be
-    // called from JavaScript. If you maintain that condition,
-    // then we know that the &mut we're about to produce is
-    // unique, and therefore safe.
+    // This is function called from JavaScript, and should *only* be
+    // called from JavaScript. This is not thread safe
     render_safe(&mut IMG_BUFFER);
 }
 
 fn render_safe(buffer: &mut [u32; MAX_PIXELS]) {
-    for pixel in buffer.iter_mut() {
-        *pixel = 0xFF_FF_00_FF;
+    let width = 800;
+    let height = 800;
+    let scale = 1.0/386.0 as f64;
+    let scale_x = width as f64/ scale;
+    let scale_y = height as f64 / scale;
+
+    //console::log_2(&"Rogging arbitrary values looks like".into(), &width.into());
+
+    for px in 0..width {
+        for py in 0..height {
+            let cx = scale * (px ) as f64;
+            let cy = scale * (py ) as f64;
+            let z = calc_z(cx, cy);
+            buffer[px + py * width] = as_u32_le( [z, 0, 0, 255]);
+        }
     }
 }
 
+fn as_u32_le(array: [u8; 4]) -> u32 {
+    ((array[0] as u32) << 0) +
+        ((array[1] as u32) << 8) +
+        ((array[2] as u32) << 16) +
+        ((array[3] as u32) << 24)
+}
+
+
+fn calc_z(cx: f64, cy: f64) -> u8 {
+    let c = num_complex::Complex::new(cx, cy);
+    let mut z = num_complex::Complex::new(cx, cy);
+
+    let mut i = 0;
+    while i < u8::MAX && z.norm() <= 3.0 {
+        z = z * z + c;
+        i += 1;
+    }
+    return i;
+}
