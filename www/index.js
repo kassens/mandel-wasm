@@ -24,6 +24,7 @@ async function init() {
     instance.exports.render_js();
 
     ctx.putImageData(image, 0, 0);
+    console.log("did render")
     
 }
 init();
