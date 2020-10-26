@@ -20,6 +20,7 @@ async function main() {
     );
     const image = new ImageData(arr, width, height);
 
+    window.imD = image;
     instance.exports.render_js();
 
     //ctx.putImageData(image, 0, 0);
@@ -45,6 +46,8 @@ function render(image) {
   // look up where the vertex data needs to go.
   var positionLocation = gl.getAttribLocation(program, "a_position");
   var texcoordLocation = gl.getAttribLocation(program, "a_texCoord");
+  var scaleLocation = gl.getUniformLocation(program, "u_scale");
+  
 
   // Create a buffer to put three 2d clip space points in
   var positionBuffer = gl.createBuffer();
@@ -93,6 +96,7 @@ function render(image) {
 
   // Tell it to use our program (pair of shaders)
   gl.useProgram(program);
+  gl.uniform2fv(scaleLocation, window.scaleArr);
 
   // Turn on the position attribute
   gl.enableVertexAttribArray(positionLocation);
@@ -126,6 +130,7 @@ function render(image) {
 
   // set the resolution
   gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
+  window.RL = resolutionLocation
 
   // Draw the rectangle.
   var primitiveType = gl.TRIANGLES;
@@ -133,6 +138,7 @@ function render(image) {
   var count = 6;
   gl.drawArrays(primitiveType, offset, count);
 }
+window.scaleArr = [2,2]
 
 function setRectangle(gl, x, y, width, height) {
   var x1 = x;
