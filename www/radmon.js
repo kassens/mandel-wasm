@@ -81,35 +81,8 @@ function render(image) {
     gl.useProgram(program);
     gl.uniform2fv(scaleLocation, window.scaleArr);
 
-    // Turn on the position attribute
-    gl.enableVertexAttribArray(positionLocation);
-
-    // Bind the position buffer.
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-    // Tell the position attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-    var size = 2;          // 2 components per iteration
-    var type = gl.FLOAT;   // the data is 32bit floats
-    var normalize = false; // don't normalize the data
-    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0;        // start at the beginning of the buffer
-    gl.vertexAttribPointer(
-        positionLocation, size, type, normalize, stride, offset);
-
-    // Turn on the texcoord attribute
-    gl.enableVertexAttribArray(texcoordLocation);
-
-    // bind the texcoord buffer.
-    gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-
-    // Tell the texcoord attribute how to get data out of texcoordBuffer (ARRAY_BUFFER)
-    var size = 2;          // 2 components per iteration
-    var type = gl.FLOAT;   // the data is 32bit floats
-    var normalize = false; // don't normalize the data
-    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0;        // start at the beginning of the buffer
-    gl.vertexAttribPointer(
-        texcoordLocation, size, type, normalize, stride, offset);
+    copyBuffer(gl, positionLocation, positionBuffer);
+    copyBuffer(gl, texcoordLocation, texcoordBuffer);
 
     // set the resolution
     gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
@@ -122,6 +95,23 @@ function render(image) {
     gl.drawArrays(primitiveType, offset, count);
 }
 window.scaleArr = [1.2,1.2]
+
+function copyBuffer(gl, location, buffer) {
+    // Turn on the position attribute
+    gl.enableVertexAttribArray(location);
+
+    // Bind the position buffer.
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+
+    // Tell the position attribute how to get data out of buffer (ARRAY_BUFFER)
+    var size = 2;          // 2 components per iteration
+    var type = gl.FLOAT;   // the data is 32bit floats
+    var normalize = false; // don't normalize the data
+    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+    var offset = 0;        // start at the beginning of the buffer
+    gl.vertexAttribPointer(
+        location, size, type, normalize, stride, offset);
+}
 
 function setRectangle(gl, x, y, width, height) {
   var x1 = x;
