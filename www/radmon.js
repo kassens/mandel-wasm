@@ -45,8 +45,6 @@ function createProgram(gl, vertexSource, fragmentSource) {
     return program;
 }
 function render(image) {
-  // setup GLSL program
-  //var program = webglUtils.createProgramFromScripts(gl, ["vertex-shader-2d", "fragment-shader-2d"]);
     const canvas = document.getElementById('viewport');
     const gl = WebGLDebugUtils.makeDebugContext(canvas.getContext("webgl"));
     const program = createProgram(gl, vertexSource, fragmentSource);
@@ -93,8 +91,6 @@ function render(image) {
 
     // lookup uniforms
     var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
-
-    webglUtils.resizeCanvasToDisplaySize(gl.canvas);
 
     // Tell WebGL how to convert from clip space to pixels
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
