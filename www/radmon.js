@@ -1,4 +1,3 @@
-// from https://webglfundamentals.org/webgl/webgl-2d-image.html
 "use strict";
 const width = 800;
 const height = 800;
@@ -22,32 +21,11 @@ async function main() {
     render(image);
 }
 
-function createProgram(gl, vertexSource, fragmentSource) {
-    const program = gl.createProgram();
-    const createShader = (source, type) => {
-        const shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            console.error("Shader compile error:", gl.getShaderInfoLog(shader));
-        }
-        return shader;
-    }
-    const v = createShader(vertexSource, gl.VERTEX_SHADER);
-    const f = createShader(fragmentSource, gl.FRAGMENT_SHADER);
-    gl.attachShader(program, f);
-    gl.attachShader(program, v);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error("Program link error:", gl.getProgramInfoLog(program));
-        //throw new Error();
-    }
-    return program;
-}
 function render(image) {
     const canvas = document.getElementById('viewport');
     const gl = WebGLDebugUtils.makeDebugContext(canvas.getContext("webgl"));
     const program = createProgram(gl, vertexSource, fragmentSource);
+    fitCanvasSize(gl);
     console.log(program)
 
     // look up where the vertex data needs to go.
@@ -143,7 +121,7 @@ function render(image) {
     var count = 6;
     gl.drawArrays(primitiveType, offset, count);
 }
-window.scaleArr = [2,2]
+window.scaleArr = [1.2,1.2]
 
 function setRectangle(gl, x, y, width, height) {
   var x1 = x;
@@ -203,3 +181,46 @@ varying vec2 v_texCoord;
 void main() {
    gl_FragColor = texture2D(u_image, v_texCoord);
 }`;
+
+function createProgram(gl, vertexSource, fragmentSource) {
+    const program = gl.createProgram();
+    const createShader = (source, type) => {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.error("Shader compile error:", gl.getShaderInfoLog(shader));
+        }
+        return shader;
+    }
+    const v = createShader(vertexSource, gl.VERTEX_SHADER);
+    const f = createShader(fragmentSource, gl.FRAGMENT_SHADER);
+    gl.attachShader(program, f);
+    gl.attachShader(program, v);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error("Program link error:", gl.getProgramInfoLog(program));
+        //throw new Error();
+    }
+    return program;
+}
+
+function fitCanvasSize(gl) {
+  var realToCSSPixels = window.devicePixelRatio;
+
+  // Lookup the size the browser is displaying the canvas in CSS pixels
+  // and compute a size needed to make our drawingbuffer match it in
+  // device pixels.
+  var displayWidth  = Math.floor(gl.canvas.clientWidth  * realToCSSPixels);
+  var displayHeight = Math.floor(gl.canvas.clientHeight * realToCSSPixels);
+
+  // Check if the canvas is not the same size.
+  if (gl.canvas.width  !== displayWidth ||
+      gl.canvas.height !== displayHeight) {
+
+    // Make the canvas the same size
+    gl.canvas.width  = displayWidth;
+    gl.canvas.height = displayHeight;
+  }
+}
+
