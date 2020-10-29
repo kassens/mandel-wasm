@@ -19,7 +19,7 @@ function init() {
         ]));
 
     // provide texture coordinates for the rectangle.
-    const texcoordBuffer = createDrawBuffer(gl, gl.getAttribLocation(program, "a_texCoord"),
+    createDrawBuffer(gl, gl.getAttribLocation(program, "a_texCoord"),
         new Float32Array([
             0.0,  0.0,
             1.0,  0.0,
@@ -29,25 +29,23 @@ function init() {
             1.0,  1.0,
         ]));
 
-    // Create a texture.
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    const texture0 = createTexture(gl, 0, gl.getUniformLocation(program, "u_image0"));
+    gl.bindTexture(gl.TEXTURE_2D, texture0);
+    const emptyPx = [255,0,100,122, 0, 200, 0, 150];
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
+        new ImageData(Uint8ClampedArray.from(emptyPx), 2, 1));
 
-    // Set the parameters so we can render any size image.
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    const texture1 = createTexture(gl, 1, gl.getUniformLocation(program, "u_image1"));
+    gl.bindTexture(gl.TEXTURE_2D, texture1);
+    const emptyPx2 = [50,1500,75,90, 200, 0, 100, 150, 10,10,200,100, 0,200,0,200];
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
+        new ImageData(Uint8ClampedArray.from(emptyPx2), 2, 2));
 
     // look up where the vertex data needs to go.
     const scaleLocation = gl.getUniformLocation(program, "u_scale");
-    const programInfo = {program, scaleLocation} 
-    console.log('did init render');
+    const textures = [texture0, texture1];
+    const programInfo = {program, scaleLocation, textures} 
 
-    const emptyPx = [255,0,0,122];
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
-        new ImageData(Uint8ClampedArray.from(emptyPx), 1, 1));
-    console.log('here')
     render(gl, programInfo);
     return [gl, programInfo];
 }
@@ -70,12 +68,13 @@ async function main([gl, programInfo]) {
 
     window.imD = image;
     // Upload the image into the texture.
+    gl.bindTexture(gl.TEXTURE_2D, programInfo.textures[0]);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
     render(gl, programInfo);
     console.log('did tex load')
 }
 
-function render(gl, {program, scaleLocation}) {
+function render(gl, {program, scaleLocation, textures}) {
     fitCanvasSize(gl);
     console.log(program)
 
@@ -138,13 +137,14 @@ const  fragmentSource = `
 precision mediump float;
 
 // our texture
-uniform sampler2D u_image;
+uniform sampler2D u_image0;
+uniform sampler2D u_image1;
 
 // the texCoords passed in from the vertex shader.
 varying vec2 v_texCoord;
 
 void main() {
-   gl_FragColor = texture2D(u_image, v_texCoord);
+   gl_FragColor = texture2D(u_image0, v_texCoord);
    //try to set a different color for second triangle
    //gl_FragColor = vec4(0, 1.0, 1.0, 1.0);
    
@@ -210,5 +210,20 @@ function createDrawBuffer(gl, location, data) {
         location, size, type, normalize, stride, offset);
     return buffer;
 }
+
+function createTexture(gl, unit, location) {
+    var texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+ 
+    // Set the parameters so we can render any size image.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+ 
+    return texture;
+}
+
 
 main(init());
