@@ -41,27 +41,15 @@ function init() {
 
     // look up where the vertex data needs to go.
     const scaleLocation = gl.getUniformLocation(program, "u_scale");
+    const programInfo = {program, scaleLocation} 
+    console.log('did init render');
 
-    return [gl, {program, scaleLocation} ];
-}
-
-function createDrawBuffer(gl, location, data) {
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-
-    // Turn on the position attribute
-    gl.enableVertexAttribArray(location);
-
-    // Tell the position attribute how to get data out of buffer (ARRAY_BUFFER)
-    var size = 2;          // 2 components per iteration
-    var type = gl.FLOAT;   // the data is 32bit floats
-    var normalize = false; // don't normalize the data
-    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0;        // start at the beginning of the buffer
-    gl.vertexAttribPointer(
-        location, size, type, normalize, stride, offset);
-    return buffer;
+    const emptyPx = [255,0,0,122];
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
+        new ImageData(Uint8ClampedArray.from(emptyPx), 1, 1));
+    console.log('here')
+    render(gl, programInfo);
+    return [gl, programInfo];
 }
 
 async function main([gl, programInfo]) {
@@ -71,6 +59,8 @@ async function main([gl, programInfo]) {
 
     const buffer_address = instance.exports.IMG_BUFFER.value;
     console.log(instance.exports.memory.buffer);
+    instance.exports.render_js();
+
     const arr = new Uint8ClampedArray(
         instance.exports.memory.buffer,
         buffer_address,
@@ -79,17 +69,16 @@ async function main([gl, programInfo]) {
     const image = new ImageData(arr, width, height);
 
     window.imD = image;
-    instance.exports.render_js();
-
-    render(gl, programInfo, image);
+    // Upload the image into the texture.
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    render(gl, programInfo);
+    console.log('did tex load')
 }
 
-function render(gl, {program, scaleLocation}, image) {
+function render(gl, {program, scaleLocation}) {
     fitCanvasSize(gl);
     console.log(program)
 
-    // Upload the image into the texture.
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
     // lookup uniforms
     var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
@@ -201,6 +190,25 @@ function fitCanvasSize(gl) {
     gl.canvas.width  = displayWidth;
     gl.canvas.height = displayHeight;
   }
+}
+
+function createDrawBuffer(gl, location, data) {
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+    // Turn on the position attribute
+    gl.enableVertexAttribArray(location);
+
+    // Tell the position attribute how to get data out of buffer (ARRAY_BUFFER)
+    var size = 2;          // 2 components per iteration
+    var type = gl.FLOAT;   // the data is 32bit floats
+    var normalize = false; // don't normalize the data
+    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+    var offset = 0;        // start at the beginning of the buffer
+    gl.vertexAttribPointer(
+        location, size, type, normalize, stride, offset);
+    return buffer;
 }
 
 main(init());
