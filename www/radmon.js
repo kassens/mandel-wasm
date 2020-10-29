@@ -13,23 +13,29 @@ function init() {
     const scaleLocation = gl.getUniformLocation(program, "u_scale");
 
     // Create a buffer to put three 2d clip space points in
-    const positionBuffer = gl.createBuffer();
-    // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    // Set a rectangle the same size as the image.
-    setRectangle(gl, 0, 0, width, height);
+    const positionBuffer = createDrawBuffer(gl, 
+        new Float32Array([
+           0, 0,
+           width, 0,
+           0, height,
+           0, height,
+           width, 0,
+           width, height,
+        ]));
 
     // provide texture coordinates for the rectangle.
-    const texcoordBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-        0.0,  0.0,
-        1.0,  0.0,
-        0.0,  1.0,
-        0.0,  1.0,
-        1.0,  0.0,
-        1.0,  1.0,
-    ]), gl.STATIC_DRAW);
+    const texcoordBuffer = createDrawBuffer(gl,
+        new Float32Array([
+            0.0,  0.0,
+            1.0,  0.0,
+            0.0,  1.0,
+            0.0,  1.0,
+            1.0,  0.0,
+            1.0,  1.0,
+        ]));
+
+    copyBuffer(gl, positionLocation, positionBuffer);
+    copyBuffer(gl, texcoordLocation, texcoordBuffer);
 
     // Create a texture.
     const texture = gl.createTexture();
@@ -40,8 +46,14 @@ function init() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    return [gl, {program, positionLocation, texcoordLocation, positionBuffer, texcoordBuffer, scaleLocation} ];
+    return [gl, {program, positionBuffer, texcoordBuffer, scaleLocation} ];
 
+}
+function createDrawBuffer(gl, data) {
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    return buffer;
 }
 
 async function main([gl, programInfo]) {
@@ -64,7 +76,7 @@ async function main([gl, programInfo]) {
     render(gl, programInfo, image);
 }
 
-function render(gl, {program, positionLocation, texcoordLocation, positionBuffer, texcoordBuffer, scaleLocation}, image) {
+function render(gl, {program, positionLocation, positionBuffer, texcoordBuffer, scaleLocation}, image) {
     fitCanvasSize(gl);
     console.log(program)
 
@@ -84,9 +96,6 @@ function render(gl, {program, positionLocation, texcoordLocation, positionBuffer
     // Tell it to use our program (pair of shaders)
     gl.useProgram(program);
     gl.uniform2fv(scaleLocation, window.scaleArr);
-
-    copyBuffer(gl, positionLocation, positionBuffer);
-    copyBuffer(gl, texcoordLocation, texcoordBuffer);
 
     // set the resolution
     gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
@@ -115,21 +124,6 @@ function copyBuffer(gl, location, buffer) {
     var offset = 0;        // start at the beginning of the buffer
     gl.vertexAttribPointer(
         location, size, type, normalize, stride, offset);
-}
-
-function setRectangle(gl, x, y, width, height) {
-  var x1 = x;
-  var x2 = x + width;
-  var y1 = y;
-  var y2 = y + height;
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-     x1, y1,
-     x2, y1,
-     x1, y2,
-     x1, y2,
-     x2, y1,
-     x2, y2,
-  ]), gl.STATIC_DRAW);
 }
 
 
