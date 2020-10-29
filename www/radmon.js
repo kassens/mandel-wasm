@@ -7,13 +7,8 @@ function init() {
     const gl = WebGLDebugUtils.makeDebugContext(canvas.getContext("webgl"));
     const program = createProgram(gl, vertexSource, fragmentSource);
 
-    // look up where the vertex data needs to go.
-    const positionLocation = gl.getAttribLocation(program, "a_position");
-    const texcoordLocation = gl.getAttribLocation(program, "a_texCoord");
-    const scaleLocation = gl.getUniformLocation(program, "u_scale");
-
     // Create a buffer to put three 2d clip space points in
-    const positionBuffer = createDrawBuffer(gl, 
+    const positionBuffer = createDrawBuffer(gl, gl.getAttribLocation(program, "a_position"),
         new Float32Array([
            0, 0,
            width, 0,
@@ -24,7 +19,7 @@ function init() {
         ]));
 
     // provide texture coordinates for the rectangle.
-    const texcoordBuffer = createDrawBuffer(gl,
+    const texcoordBuffer = createDrawBuffer(gl, gl.getAttribLocation(program, "a_texCoord"),
         new Float32Array([
             0.0,  0.0,
             1.0,  0.0,
@@ -33,9 +28,6 @@ function init() {
             1.0,  0.0,
             1.0,  1.0,
         ]));
-
-    copyBuffer(gl, positionLocation, positionBuffer);
-    copyBuffer(gl, texcoordLocation, texcoordBuffer);
 
     // Create a texture.
     const texture = gl.createTexture();
@@ -46,13 +38,29 @@ function init() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    return [gl, {program, positionBuffer, texcoordBuffer, scaleLocation} ];
 
+    // look up where the vertex data needs to go.
+    const scaleLocation = gl.getUniformLocation(program, "u_scale");
+
+    return [gl, {program, scaleLocation} ];
 }
-function createDrawBuffer(gl, data) {
+
+function createDrawBuffer(gl, location, data) {
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+    // Turn on the position attribute
+    gl.enableVertexAttribArray(location);
+
+    // Tell the position attribute how to get data out of buffer (ARRAY_BUFFER)
+    var size = 2;          // 2 components per iteration
+    var type = gl.FLOAT;   // the data is 32bit floats
+    var normalize = false; // don't normalize the data
+    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+    var offset = 0;        // start at the beginning of the buffer
+    gl.vertexAttribPointer(
+        location, size, type, normalize, stride, offset);
     return buffer;
 }
 
@@ -76,7 +84,7 @@ async function main([gl, programInfo]) {
     render(gl, programInfo, image);
 }
 
-function render(gl, {program, positionLocation, positionBuffer, texcoordBuffer, scaleLocation}, image) {
+function render(gl, {program, scaleLocation}, image) {
     fitCanvasSize(gl);
     console.log(program)
 
@@ -108,24 +116,6 @@ function render(gl, {program, positionLocation, positionBuffer, texcoordBuffer, 
     gl.drawArrays(primitiveType, offset, count);
 }
 window.scaleArr = [1.2,1.2]
-
-function copyBuffer(gl, location, buffer) {
-    // Turn on the position attribute
-    gl.enableVertexAttribArray(location);
-
-    // Bind the position buffer.
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-
-    // Tell the position attribute how to get data out of buffer (ARRAY_BUFFER)
-    var size = 2;          // 2 components per iteration
-    var type = gl.FLOAT;   // the data is 32bit floats
-    var normalize = false; // don't normalize the data
-    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0;        // start at the beginning of the buffer
-    gl.vertexAttribPointer(
-        location, size, type, normalize, stride, offset);
-}
-
 
 const vertexSource = `
 attribute vec2 a_position;
