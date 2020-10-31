@@ -71,6 +71,12 @@ async function main([gl, programInfo]) {
     // Upload the image into the texture.
     gl.bindTexture(gl.TEXTURE_2D, programInfo.textures[0]);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+    // is this necessary
+    gl.bindTexture(gl.TEXTURE_2D, programInfo.textures[1]);
+    const emptyPx2 = [0,150,75,90, 200, 0, 100, 150, 10,10,200,100, 0,200,0,200];
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
+        new ImageData(Uint8ClampedArray.from(emptyPx2), 4, 1));
     render(gl, programInfo);
     console.log('did tex load')
 }
