@@ -18,6 +18,7 @@ function init() {
            width, height,
         ]));
 
+
     // provide texture coordinates for the rectangle.
     createDrawBuffer(gl, gl.getAttribLocation(program, "a_texCoord"),
         new Float32Array([
@@ -33,13 +34,13 @@ function init() {
     gl.bindTexture(gl.TEXTURE_2D, texture0);
     const emptyPx = [255,0,100,122, 0, 200, 0, 150];
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
-        new ImageData(Uint8ClampedArray.from(emptyPx), 2, 1));
+        new ImageData(Uint8ClampedArray.from(emptyPx), 1, 2));
 
     const texture1 = createTexture(gl, 1, gl.getUniformLocation(program, "u_image1"));
     gl.bindTexture(gl.TEXTURE_2D, texture1);
-    const emptyPx2 = [50,1500,75,90, 200, 0, 100, 150, 10,10,200,100, 0,200,0,200];
+    const emptyPx2 = [0,150,75,90, 200, 0, 100, 150, 10,10,200,100, 0,200,0,200];
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
-        new ImageData(Uint8ClampedArray.from(emptyPx2), 2, 2));
+        new ImageData(Uint8ClampedArray.from(emptyPx2), 4, 1));
 
     // look up where the vertex data needs to go.
     const scaleLocation = gl.getUniformLocation(program, "u_scale");
@@ -93,6 +94,12 @@ function render(gl, {program, scaleLocation, textures}) {
     gl.useProgram(program);
     gl.uniform2fv(scaleLocation, window.scaleArr);
 
+    var u_image0Location = gl.getUniformLocation(program, "u_image0");
+    var u_image1Location = gl.getUniformLocation(program, "u_image1");
+    // set which texture units to render with.
+    gl.uniform1i(u_image0Location, 0);  // texture unit 0
+    gl.uniform1i(u_image1Location, 1);  // texture unit 1
+    
     // set the resolution
     gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
     window.RL = resolutionLocation
@@ -105,50 +112,6 @@ function render(gl, {program, scaleLocation, textures}) {
 }
 window.scaleArr = [1.2,1.2]
 
-const vertexSource = `
-attribute vec2 a_position;
-attribute vec2 a_texCoord;
-
-uniform vec2 u_resolution;
-uniform vec2 u_scale;
-
-varying vec2 v_texCoord;
-
-void main() {
-   // convert the rectangle from pixels to 0.0 to 1.0
-   vec2 scaledPosition = a_position * u_scale;
-   
-   vec2 zeroToOne = scaledPosition / u_resolution;
-
-   // convert from 0->1 to 0->2
-   vec2 zeroToTwo = zeroToOne * 2.0;
-
-   // convert from 0->2 to -1->+1 (clipspace)
-   vec2 clipSpace = zeroToTwo - 1.0;
-
-   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
-
-   // pass the texCoord to the fragment shader
-   // The GPU will interpolate this value between points.
-   v_texCoord = a_texCoord;
-}`;
-
-const  fragmentSource = `
-precision mediump float;
-
-// our texture
-uniform sampler2D u_image0;
-uniform sampler2D u_image1;
-
-// the texCoords passed in from the vertex shader.
-varying vec2 v_texCoord;
-
-void main() {
-   gl_FragColor = texture2D(u_image0, v_texCoord);
-   //try to set a different color for second triangle
-   //gl_FragColor = vec4(0, 1.0, 1.0, 1.0);
-   
-}`;
 
 function createProgram(gl, vertexSource, fragmentSource) {
     const program = gl.createProgram();
@@ -226,4 +189,52 @@ function createTexture(gl, unit, location) {
 }
 
 
+const vertexSource = `
+attribute vec2 a_position;
+attribute vec2 a_texCoord;
+
+uniform vec2 u_resolution;
+uniform vec2 u_scale;
+
+varying vec2 v_texCoord;
+
+void main() {
+   // convert the rectangle from pixels to 0.0 to 1.0
+   vec2 scaledPosition = a_position * u_scale;
+   
+   vec2 zeroToOne = scaledPosition / u_resolution;
+
+   // convert from 0->1 to 0->2
+   vec2 zeroToTwo = zeroToOne * 2.0;
+
+   // convert from 0->2 to -1->+1 (clipspace)
+   vec2 clipSpace = zeroToTwo - 1.0;
+
+   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+
+   // pass the texCoord to the fragment shader
+   // The GPU will interpolate this value between points.
+   v_texCoord = a_texCoord;
+}`;
+
+const  fragmentSource = `
+precision mediump float;
+
+// our texture
+uniform sampler2D u_image0;
+uniform sampler2D u_image1;
+
+// the texCoords passed in from the vertex shader.
+varying vec2 v_texCoord;
+
+void main() {
+   //gl_FragColor = texture2D(u_image0, v_texCoord);
+   //try to set a different color for second triangle
+   //gl_FragColor = vec4(0, 1.0, 1.0, 1.0);
+   vec4 color0 = texture2D(u_image0, v_texCoord);
+   vec4 color1 = texture2D(u_image1, v_texCoord);
+   gl_FragColor = color0 * color1;
+   
+   
+}`;
 main(init());
