@@ -1,6 +1,6 @@
 "use strict";
-const width = 200;
-const height = width;
+const width = 500;
+const height = 400;
 
 function getRenderer() {
     const canvas = document.getElementById('viewport');
@@ -54,7 +54,6 @@ function getRenderer() {
         if (!scale) scale=1;
         gl.useProgram(program);
         const scaleLocation = gl.getUniformLocation(program, "u_scale");
-        console.log(scale)
         gl.uniform2fv(scaleLocation, [scale, scale]);
 
         // Draw the rectangle.
@@ -171,9 +170,25 @@ function animate() {
             requestAnimationFrame(step);
         }
 
-        const sc = 1.0 + .2 * elapsed/segmentDuration;
+        const sc = 1.0 + 0.25 * elapsed/segmentDuration;
         render(sc);
     }
 
     requestAnimationFrame(step);
 }
+
+function makeWorker(handler) {
+    const worker = new Worker("./worker.js");
+    worker.onmessage = function(event) {
+        handler(event.data);
+    };
+    return worker;
+}
+
+const w1 = makeWorker(data => console.log('smplyu', data.colorArr, data));
+w1.postMessage({start:-1, step:200, count: 1000});
+setTimeout(function() {
+    console.log("queueing");
+    w1.postMessage({start:1, step:300, count: 500});
+    w1.postMessage({start:7, step:700, count: 700});
+}, 500);
