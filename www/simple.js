@@ -9,33 +9,54 @@ function init() {
 
     // Create a buffer to put three 2d clip space points in
     const setPosition = createPositionBuffer(gl, gl.getAttribLocation(program, "a_position"));
+    const setTex = createPositionBuffer(gl, gl.getAttribLocation(program, "a_tex"));
+
+    const texture0 = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture0);
+ 
+    // Set the parameters so we can render any size image.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+ 
+    const emptyPx = [
+        255,0,0,255,
+        0,255, 0, 255,
+        0,0, 255, 255,
+        0,255, 255, 255,
+        ];
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
+        new ImageData(Uint8ClampedArray.from(emptyPx), 2, 2));
+
+    const texPos = new Float32Array([
+        -0.1,1,
+        1,1,
+        0,0,
+
+        0,0,
+        1,1,
+        1,0,
+    
+    ]);
+    setTex(texPos);
+    setPosition( new Float32Array([
+            
+           -0.9, 0.9,
+           0.9, 0.9,
+           -0.9, -0.9,
+            
+           -0.9, -0.9,
+           0.9, 0.9,
+           0.9, -0.9,
+           ]));
 
     const render = (() => { return function render() {
         fitCanvasSize(gl);
         // Tell WebGL how to convert from clip space to pixels
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         console.log(program)
-
-        setPosition( new Float32Array([
-               -0.9, -0.9,
-               0, -1,
-               -0.8, 0,
-                
-               0, 0,
-               0, 1,
-               1, 0,
-               ]));
-        /*
-        setPosition( new Float32Array([
-               10, 20,
-               width, 0,
-               0, height,
-               width, 100,
-               100, height,
-               width-5, height-10]));
-        */
-
-        // lookup uniforms
 
         // Clear the canvas
         //gl.clearColor(0, 0, 100, 0);
@@ -109,6 +130,7 @@ function fitCanvasSize(gl) {
 
 function createPositionBuffer(gl, location) {
     const buffer = gl.createBuffer();
+    console.log('loc', location, buffer)
     return function (data) {
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
@@ -130,6 +152,7 @@ function createPositionBuffer(gl, location) {
 
 const vertexSource = `
 attribute vec2 a_position;
+attribute vec2 a_tex;
 
 uniform vec2 u_resolution;
 uniform vec2 u_scale;
@@ -138,19 +161,18 @@ varying vec2 v_texCoord;
 
 void main() {
    gl_Position = vec4(a_position, 0, 1);
+  v_texCoord = a_tex;
+   
 }`;
 
 const  fragmentSource = `
 precision mediump float;
 
+uniform sampler2D u_image0;
+varying vec2 v_texCoord;
 void main() {
-   //gl_FragColor = texture2D(u_image0, v_texCoord);
-   //try to set a different color for second triangle
-   gl_FragColor = vec4(0, 1.0, 1.0, 1.0);
-   //vec4 color0 = texture2D(u_image0, v_texCoord);
-   //vec4 color1 = texture2D(u_image1, v_texCoord);
-   //gl_FragColor = color0 * color1;
    
-   
+   //gl_FragColor = vec4(0, 1.0, 1.0, 1.0);
+   gl_FragColor = texture2D(u_image0, v_texCoord);
 }`;
 init();
