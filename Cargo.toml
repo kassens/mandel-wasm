@@ -10,4 +10,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 num-complex = "0.3.0"
+num-rational = "0.3.1"
+num-bigint = "0.3.0"
 
