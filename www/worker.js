@@ -1,12 +1,12 @@
-let chunk = null;
-
 async function init() {
     const { instance } = await WebAssembly.instantiateStreaming(
         fetch("../target/wasm32-unknown-unknown/release/mandel_wasm.wasm")
     );
 
+    console.log('fet',"../target/wasm32-unknown-unknown/release/mandel_wasm.wasm");
     onmessage = function (e) {
-        let {width, height} = e.data;
+        let chunk = e.data;
+        let {width, height} = chunk;
         console.log('run', width, height);
 
         const buffer_address = instance.exports.IMG_BUFFER.value;
@@ -18,14 +18,14 @@ async function init() {
             4 * width * height,
         );
 
-        let rChunk = chunk;
-        chunk = null;
         console.log('fe', arr.length, arr)
-        postMessage({...rChunk, arr}, [arr.buffer]);
+        postMessage({...chunk, arr}, [arr.buffer]);
         console.log('af', arr.length, arr)
     }
 
     postMessage("READY");
 }
 
+console.log('wini')
 init();
+console.log('fini')

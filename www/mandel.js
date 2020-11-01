@@ -20,19 +20,9 @@ function getRenderer() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-    const colors = [
-        255,0,0,255,
-        0,255, 0, 255,
-        0,0, 255, 255,
-        0,255, 255, 255,
-
-        255,255,0,255,
-        0,0, 0, 0,
-        255,0, 255, 255,
-        255,255, 255, 255,
-        ];
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
-        new ImageData(Uint8ClampedArray.from(colors), 2, 4));
+        //new ImageData(new Uint8ClampedArray(width*(height)*4), width, height));
+        new ImageData(new Uint8ClampedArray(width*(height*2)*4), width, height*2));
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);  
@@ -46,6 +36,14 @@ function getRenderer() {
     window.resetAnimation = function() {
         pong = !pong;
         setTextureCoords(pong ? texturePong : texturePing);
+    }
+
+    window.updateTexture = function(y, arr) {
+        let img = new ImageData(arr, width, height);
+        console.log(img)
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        render();
+
     }
     resetAnimation();
     
@@ -179,6 +177,7 @@ function animate() {
 
 function makeWorker(handler) {
     const worker = new Worker("./worker.js");
+    console.log('work', worker);
     worker.onmessage = function(event) {
         handler(event.data);
     };
@@ -188,8 +187,10 @@ function makeWorker(handler) {
 const w1 = makeWorker(data => {
     if (data == "READY") {
         console.log('Ready!')
-        w1.postMessage({width:800, height:800});
+        w1.postMessage({width, height});
     } else {
         console.log('received', data)
+        updateTexture(0, data.arr);
+        //updateTexture(height, data.arr);
     }
 });

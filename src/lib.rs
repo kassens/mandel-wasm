@@ -14,8 +14,8 @@ pub unsafe extern fn render_js() {
 }
 
 fn render_safe(buffer: &mut [u32; MAX_PIXELS]) {
-    let width = 800;
-    let height = 800;
+    let width = 500;
+    let height = 400;
     // what is the scale factor. fineness? it's how far away the next pixel is
     //let grid = width/10;
     //let start: ... approx f64
