@@ -14,13 +14,12 @@ function init() {
     const texture0 = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture0);
- 
-    // Set the parameters so we can render any size image.
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
- 
+    
+
     const emptyPx = [
         255,0,0,255,
         0,255, 0, 255,
@@ -31,7 +30,7 @@ function init() {
         new ImageData(Uint8ClampedArray.from(emptyPx), 2, 2));
 
     const texPos = new Float32Array([
-        -0.1,1,
+        0,1,
         1,1,
         0,0,
 
@@ -41,6 +40,32 @@ function init() {
     
     ]);
     setTex(texPos);
+
+    const texture1 = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, texture1);
+ 
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    const nindGrid = [
+        0,0,0,0,
+        0,0,0,0,
+        0,0,0,0,
+
+        0,0,0,0,
+        0,255,255,255,
+        0,0,0,0,
+
+        0,0,0,0,
+        0,0,0,0,
+        0,0,0,0,
+        ];
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
+        new ImageData(Uint8ClampedArray.from(nindGrid), 3, 3));
+ 
     setPosition( new Float32Array([
             
            -0.9, 0.9,
@@ -66,6 +91,11 @@ function init() {
         gl.useProgram(program);
         const scaleLocation = gl.getUniformLocation(program, "u_scale");
         gl.uniform2fv(scaleLocation, window.scaleArr);
+
+    const u_image0Location = gl.getUniformLocation(program, "u_image0");
+    const u_image1Location = gl.getUniformLocation(program, "u_image1");
+        gl.uniform1i(u_image0Location, 0);  // texture unit 0
+        gl.uniform1i(u_image1Location, 1);  // texture unit 0
 
     // color shit
     //gl.bindBuffer(gl.ARRAY_BUFFER, pickBuffer);
@@ -169,10 +199,14 @@ const  fragmentSource = `
 precision mediump float;
 
 uniform sampler2D u_image0;
+uniform sampler2D u_image1;
+
 varying vec2 v_texCoord;
 void main() {
    
-   //gl_FragColor = vec4(0, 1.0, 1.0, 1.0);
-   gl_FragColor = texture2D(u_image0, v_texCoord);
+   vec4 color0 = texture2D(u_image0, v_texCoord);
+   vec4 color1 = texture2D(u_image1, v_texCoord);
+   gl_FragColor = color0 * color1;
+   
 }`;
 init();
