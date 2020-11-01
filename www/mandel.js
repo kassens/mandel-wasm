@@ -73,11 +73,28 @@ function getRenderer() {
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);  
+
+    let y = 0;
+    window.tryMe = function() {
+        console.log('ih');
+        const colors2 = [
+            0,0,0,255,
+            255,255, 255, 255,
+            100,0, 100, 255,
+            0,0, 100, 255,
+            ];
+        const image = new ImageData(Uint8ClampedArray.from(colors2), 2, 2);
+
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        y = y +2;
+        render();
+        
+    }
     
     return function render() {
-        fitCanvasSize(gl);
+        //fitCanvasSize(gl);
         // Tell WebGL how to convert from clip space to pixels
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.viewport(0, 0, width, height);
         console.log(program)
 
         // Clear the canvas
@@ -192,3 +209,4 @@ void main() {
 }`;
 window.render = getRenderer();
 render();
+
