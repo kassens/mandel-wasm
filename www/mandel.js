@@ -185,10 +185,11 @@ function makeWorker(handler) {
     return worker;
 }
 
-const w1 = makeWorker(data => console.log('smplyu', data.colorArr, data));
-w1.postMessage({start:-1, step:200, count: 1000});
-setTimeout(function() {
-    console.log("queueing");
-    w1.postMessage({start:1, step:300, count: 500});
-    w1.postMessage({start:7, step:700, count: 700});
-}, 500);
+const w1 = makeWorker(data => {
+    if (data == "READY") {
+        console.log('Ready!')
+        w1.postMessage({width:800, height:800});
+    } else {
+        console.log('received', data)
+    }
+});
