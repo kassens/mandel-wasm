@@ -55,8 +55,8 @@ function init() {
         0,0,0,0,
         0,0,0,0,
 
-        0,0,0,0,
-        0,255,255,255,
+        0,0,0,255,
+        255,255,255,255,
         0,0,0,0,
 
         0,0,0,0,
@@ -206,7 +206,7 @@ void main() {
    
    vec4 color0 = texture2D(u_image0, v_texCoord);
    vec4 color1 = texture2D(u_image1, v_texCoord);
-   gl_FragColor = color0 * color1;
+   gl_FragColor = color1.a < 1.0 ? color0 : color1;
    
 }`;
 init();
