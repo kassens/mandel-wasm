@@ -7,27 +7,10 @@ function getRenderer() {
     const gl = WebGLDebugUtils.makeDebugContext(canvas.getContext("webgl"));
     const program = createProgram(gl, vertexSource, fragmentSource);
 
-    // Create a buffer to put three 2d clip space points in
-    const setPosition = createPositionBuffer(gl, gl.getAttribLocation(program, "a_position"));
-    setPosition( new Float32Array([
-           -0.9, 0.9,
-           0.9, 0.9,
-           -0.9, -0.9,
-            
-           -0.9, -0.9,
-           0.9, 0.9,
-           0.9, -0.9,
-
-           -0.7, 0.7,
-           0.7, 0.7,
-           -0.7, -0.7,
-            
-           -0.7, -0.7,
-           0.7, 0.7,
-           0.7, -0.7,
-           ]));
-
-    const setTex = createPositionBuffer(gl, gl.getAttribLocation(program, "a_tex"));
+    let animStepSize = 5;
+    const clipSquare = [-1, 1, 1, 1, -1, -1, -1, -1, 1, 1, 1, -1];
+    const vertices = new Float32Array(clipSquare.concat(clipSquare.map(v => v * 0.8)));
+    (createPositionBuffer(gl, gl.getAttribLocation(program, "a_position")))(vertices);
 
     const texture0 = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
@@ -36,7 +19,6 @@ function getRenderer() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    
 
     const colors = [
         255,0,0,255,
@@ -52,59 +34,28 @@ function getRenderer() {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
         new ImageData(Uint8ClampedArray.from(colors), 2, 4));
 
-    const texPos = new Float32Array([
-        0,0,
-        1,0,
-        0,0.5,
- 
-        0,0.5,
-        1,0,
-        1,0.5,
-
-        0,0.5,
-        1,0.5,
-        0,1,
-
-        0,1,
-        1,0.5,
-        1,1,
-    ]);
-    setTex(texPos);
-
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);  
 
-    let y = 0;
-    window.tryMe = function() {
-        console.log('ih');
-        const colors2 = [
-            0,0,0,255,
-            255,255, 255, 255,
-            100,0, 100, 255,
-            0,0, 100, 255,
-            ];
-        const image = new ImageData(Uint8ClampedArray.from(colors2), 2, 2);
-
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        y = y +2;
-        render();
-        
+    const setTextureCoords = createPositionBuffer(gl, gl.getAttribLocation(program, "a_tex"));
+    const topSquare    = [0.0, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.5, 1.0, 0.0, 1.0, 0.5];
+    const bottomSquare = topSquare.map((v, n) => v + n%2 * 0.5);
+    const texturePing = new Float32Array(topSquare.concat(bottomSquare));
+    const texturePong = new Float32Array(bottomSquare.concat(topSquare));
+    let pong = true;
+    window.resetAnimation = function() {
+        pong = !pong;
+        setTextureCoords(pong ? texturePong : texturePing);
     }
+    resetAnimation();
     
-    return function render() {
-        //fitCanvasSize(gl);
-        // Tell WebGL how to convert from clip space to pixels
-        gl.viewport(0, 0, width, height);
-        console.log(program)
-
-        // Clear the canvas
-        //gl.clearColor(0, 0, 100, 0);
-        //gl.clear(gl.COLOR_BUFFER_BIT);
-
-        // Tell it to use our program (pair of shaders)
+    gl.viewport(0, 0, width, height);
+    return function render(scale) {
+        if (!scale) scale=1;
         gl.useProgram(program);
         const scaleLocation = gl.getUniformLocation(program, "u_scale");
-        gl.uniform2fv(scaleLocation, window.scaleArr);
+        console.log(scale)
+        gl.uniform2fv(scaleLocation, [scale, scale]);
 
         // Draw the rectangle.
         var primitiveType = gl.TRIANGLES;
@@ -160,23 +111,21 @@ function fitCanvasSize(gl) {
 
 function createPositionBuffer(gl, location) {
     const buffer = gl.createBuffer();
-    console.log('loc', location, buffer)
-    return function (data) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+
+    // Turn on the position attribute
+    gl.enableVertexAttribArray(location);
+
+    const size = 2;          // 2 components per iteration
+    const type = gl.FLOAT;   // the data is 32bit floats
+    const normalize = false; // don't normalize the data
+    const stride = 0;        // 0 = move forward size * sizeof(type) each iteration
+    const offset = 0;        // start at the beginning of the buffer
+    gl.vertexAttribPointer(location, size, type, normalize, stride, offset);
+
+    return function(data) {
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-
-        // Turn on the position attribute
-        gl.enableVertexAttribArray(location);
-
-        // Tell the position attribute how to get data out of buffer (ARRAY_BUFFER)
-        var size = 2;          // 2 components per iteration
-        var type = gl.FLOAT;   // the data is 32bit floats
-        var normalize = false; // don't normalize the data
-        var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-        var offset = 0;        // start at the beginning of the buffer
-        gl.vertexAttribPointer(
-            location, size, type, normalize, stride, offset);
-        return buffer;
     }
 }
 
@@ -184,15 +133,14 @@ const vertexSource = `
 attribute vec2 a_position;
 attribute vec2 a_tex;
 
-uniform vec2 u_resolution;
 uniform vec2 u_scale;
 
 varying vec2 v_texCoord;
 
 void main() {
-   gl_Position = vec4(a_position, 0, 1);
-  v_texCoord = a_tex;
-   
+    vec2 scaledPosition = a_position * u_scale;
+    gl_Position = vec4(scaledPosition, 0, 1);
+    v_texCoord = a_tex;
 }`;
 
 const  fragmentSource = `
@@ -207,6 +155,25 @@ void main() {
    gl_FragColor = color0;
    
 }`;
-window.render = getRenderer();
-render();
 
+window.render = getRenderer();
+
+render();
+function animate() {
+    const segmentDuration = 2000;
+    let start = null;
+    const step = function(ts) {
+        if (start == null) start = ts;
+        let elapsed = ts - start;
+        if (elapsed > segmentDuration) {
+            elapsed = segmentDuration;
+        } else {
+            requestAnimationFrame(step);
+        }
+
+        const sc = 1.0 + .2 * elapsed/segmentDuration;
+        render(sc);
+    }
+
+    requestAnimationFrame(step);
+}
