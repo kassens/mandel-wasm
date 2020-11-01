@@ -1,5 +1,8 @@
 extern crate num_complex;
 
+//use num_rational::{Ratio, BigRational};
+//use num_bigint::BigInt;
+
 const MAX_DIM: usize = 2200;
 const MAX_PIXELS: usize = MAX_DIM * MAX_DIM;
 
@@ -7,46 +10,24 @@ const MAX_PIXELS: usize = MAX_DIM * MAX_DIM;
 static mut IMG_BUFFER: [u32; MAX_PIXELS] = [0; MAX_PIXELS];
 
 #[no_mangle]
-pub unsafe extern fn render_js() {
+pub unsafe extern fn render_js(cols:usize, rows: usize) {
     // This is function called from JavaScript, and should *only* be
     // called from JavaScript. This is not thread safe
-    render_safe(&mut IMG_BUFFER);
+    render_safe(&mut IMG_BUFFER, cols, rows);
 }
 
-fn render_safe(buffer: &mut [u32; MAX_PIXELS]) {
-    let width = 500;
-    let height = 400;
-    // what is the scale factor. fineness? it's how far away the next pixel is
-    //let grid = width/10;
-    //let start: ... approx f64
-    //let increment: Ratio<BigInt> = width
-    // rewrite this as mutable iteration over buffer by index
-    // cx = startx + increment * (index / width);
-    // cy = starty + increment * (index % width);
-    //let mut iter = a.iter().enumerate();
-    //
-    // assert_eq!(iter.next(), Some((0, &'a')));
-    // for (index, pixel) in buffer.iter_mut().enumerate() {
-    //
-    // }
-
-    //use real for local variables
-    let ax = -0.6;
-    let ay = ax;
-    let bx = -0.4;
-    let by = bx;
-    let scale_x = width as f64 / (bx - ax);
-    let scale_y = height as f64 / (by - ay);
-
-    //console::log_2(&"Rogging arbitrary values looks like".into(), &width.into());
-
-    for px in 0..width {
-        for py in 0..height {
-            let cx = ax + px as f64 / scale_x;
-            let cy = ay + py as f64 / scale_y;
-            let z = calc_z(cx, cy);
-            buffer[px + py * width] = as_u32_le([z, z, z, 255]);
+fn render_safe(buffer: &mut [u32; MAX_PIXELS], cols: usize, rows: usize) {
+    //let row_count = rows as u64;
+    for (index, pixel) in buffer.iter_mut().enumerate() {
+        let step_size:f64 = 0.006;
+        let cx = -2.0 + step_size * (index % cols) as f64;
+        let y_offset = index / cols;
+        if y_offset >= rows {
+            break;
         }
+        let cy = -1.0 + y_offset as f64 * 0.006;
+        let z = calc_z(cx, cy, 3.0);
+        *pixel = as_u32_le([z,z,z,u8::MAX]);
     }
 }
 
@@ -58,14 +39,22 @@ fn as_u32_le(array: [u8; 4]) -> u32 {
 }
 
 
-fn calc_z(cx: f64, cy: f64) -> u8 {
+fn calc_z(cx: f64, cy: f64, clamp: f64) -> u8 {
     let c = num_complex::Complex::new(cx, cy);
     let mut z = num_complex::Complex::new(cx, cy);
 
     let mut i = 0;
-    while i < u8::MAX && z.norm() <= 8.0 {
+    while i < u8::MAX && z.norm() < clamp {
         z = z * z + c;
         i += 1;
     }
     return i;
+}
+
+fn add(x:usize, y:usize) -> usize {
+    return x + y + 7;
+}
+#[test]
+fn test_add() {
+    assert_eq!(add(1, 2), 3, "my :usize assertion");
 }
