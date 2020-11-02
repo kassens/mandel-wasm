@@ -6,12 +6,11 @@ use num_traits::ToPrimitive;
 
 pub fn render<T, F>(iter: Enumerate<IterMut<T>>, store_pixel: F, cols: usize, rows: usize) where
     F: Fn(u8, u8, u8) ->  T {
-    let x_start = Rational64::new(-2, 1);
-    let y_start = Rational64::new(-1, 1);
-    let step_ratio = Rational64::new(1, 180);
+    let denom = 180 as i64;
+    let x_start = -2 * denom;
+    let y_start = denom * -1;
     for (index, pixel) in iter {
-        let step_size: f64 = 0.006;
-        let cxr = x_start + step_ratio * (index%cols) as i64;
+        let cxr = Rational64::new(x_start + (index%cols) as i64, denom);
         //let cxr = x_start + Rational64::new(3*(index % cols) as i64, 500 as i64);
         //let cx = -2.0 + step_size * (index % cols) as f64;
         let cx = cxr.to_f64().unwrap();
@@ -19,7 +18,8 @@ pub fn render<T, F>(iter: Enumerate<IterMut<T>>, store_pixel: F, cols: usize, ro
         if y_offset >= rows {
             break;
         }
-        let cyr = y_start + step_ratio * y_offset as i64;
+        let cyr = Rational64::new(y_start + y_offset as i64, denom);
+        //let cxr = x_start + Rational64::new(3*(index % cols) as i64, 500 as i64);
         //let cy = -1.0 + y_offset as f64 * 0.006;
         let cy = cyr.to_f64().unwrap();
         let z = calc_z(cx, cy, 3.0);
