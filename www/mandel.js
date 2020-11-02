@@ -187,8 +187,7 @@ function makeWorker(handler) {
 const w1 = makeWorker(data => {
     if (data == "READY") {
         console.log('Ready!')
-        w1.postMessage({
-            step_size: BigInt(125), x:BigInt(-250), y:BigInt(-200), cols: width, rows: height });
+        w1.postMessage({width, height});
     } else {
         console.log('received', data)
         updateTexture(0, data.arr);
