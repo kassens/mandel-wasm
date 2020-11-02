@@ -4,6 +4,7 @@ const height = 400;
 
 function getRenderer() {
     const canvas = document.getElementById('viewport');
+    canvas.addEventListener('click', clickHandler, false);
     const gl = WebGLDebugUtils.makeDebugContext(canvas.getContext("webgl"));
     const program = createProgram(gl, vertexSource, fragmentSource);
 
@@ -40,7 +41,6 @@ function getRenderer() {
 
     window.updateTexture = function(y, arr) {
         let img = new ImageData(arr, width, height);
-        console.log(img)
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, img);
         render();
 
@@ -177,20 +177,33 @@ function animate() {
 
 function makeWorker(handler) {
     const worker = new Worker("./worker.js");
-    console.log('work', worker);
     worker.onmessage = function(event) {
         handler(event.data);
     };
     return worker;
 }
 
+let center = {x:0, y:0};
+let stepSize = 180;
 const w1 = makeWorker(data => {
     if (data == "READY") {
         console.log('Ready!')
-        w1.postMessage({width, height});
+        w1.postMessage({center, stepSize, width, height});
     } else {
-        console.log('received', data)
         updateTexture(0, data.arr);
         //updateTexture(height, data.arr);
     }
 });
+
+function clickHandler(e) {
+    let x = e.offsetX
+    let y = e.offsetY
+    center.x += x - width/2;
+    center.y += y - height/2;
+    let scaleFac = 10;
+    center.x *= scaleFac;
+    center.y *= scaleFac;
+    stepSize *= scaleFac;
+    console.log(stepSize)
+    w1.postMessage({center, stepSize, width, height});
+}

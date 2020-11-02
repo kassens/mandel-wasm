@@ -12,12 +12,12 @@ const MAX_PIXELS: usize = MAX_DIM * MAX_DIM;
 static mut IMG_BUFFER: [u32; MAX_PIXELS] = [0; MAX_PIXELS];
 
 #[no_mangle]
-pub unsafe extern fn render_js(cols: usize, rows: usize) {
+pub unsafe extern fn render_js(step_size:i64, center_x:i64, cols: usize, center_y:i64, rows: usize) {
     // This is function called from JavaScript, and should *only* be
     // called from JavaScript. This is not thread safe
     mandelbrot::render(IMG_BUFFER.iter_mut().enumerate(),
-                       to_rgba_32,
-                       cols, rows);
+                       to_rgba_32, step_size,
+                      center_x, cols, center_y, rows);
 }
 
 fn to_rgba_32(r: u8, g: u8, b: u8) -> u32 {
