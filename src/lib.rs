@@ -50,11 +50,3 @@ fn calc_z(cx: f64, cy: f64, clamp: f64) -> u8 {
     }
     return i;
 }
-
-fn add(x:usize, y:usize) -> usize {
-    return x + y + 7;
-}
-#[test]
-fn test_add() {
-    assert_eq!(add(1, 2), 3, "my :usize assertion");
-}

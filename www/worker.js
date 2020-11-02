@@ -10,7 +10,7 @@ async function init() {
         console.log('run', width, height);
 
         const buffer_address = instance.exports.IMG_BUFFER.value;
-        instance.exports.render_js();
+        instance.exports.render_js(width, height);
 
         const arr = new Uint8ClampedArray(
             instance.exports.memory.buffer,
