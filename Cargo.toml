@@ -12,3 +12,4 @@ crate-type = ["cdylib"]
 num-complex = "0.3.0"
 image = "0.23.11"
 num-traits = "0.2.14"
+num-rational = "0.3.1"
