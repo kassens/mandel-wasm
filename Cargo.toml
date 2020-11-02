@@ -11,3 +11,4 @@ crate-type = ["cdylib"]
 [dependencies]
 num-complex = "0.3.0"
 image = "0.23.11"
+num-traits = "0.2.14"

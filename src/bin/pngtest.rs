@@ -12,9 +12,10 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut img_buf = vec![Rgba([0,0,0,0]); rows * cols];
 
-    mandelbrot::render(img_buf.iter_mut().enumerate(), render_pixel, cols, rows);
+    mandelbrot::render(img_buf.iter_mut().enumerate(), store_pixel, cols, rows);
 
     let mut img: image::ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(cols as u32, rows as u32);
+    // it seems silly we have to do this but I couldn't get IterMut and PixelsMut to line up, type-wise
     for (index, pixel) in img.pixels_mut().enumerate() {
         *pixel = img_buf[index];
     }
@@ -22,7 +23,7 @@ fn main() -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn render_pixel(z: u8) -> Rgba<u8> {
-    image::Rgba([z, z, z, u8::MAX])
+fn store_pixel(r: u8, g: u8, b: u8) -> Rgba<u8> {
+    image::Rgba([r, g, b, u8::MAX])
 }
 

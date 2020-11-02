@@ -16,13 +16,13 @@ pub unsafe extern fn render_js(cols: usize, rows: usize) {
     // This is function called from JavaScript, and should *only* be
     // called from JavaScript. This is not thread safe
     mandelbrot::render(IMG_BUFFER.iter_mut().enumerate(),
-                       |z| as_u32_le([z, z, z, u8::MAX]),
+                       to_rgba_32,
                        cols, rows);
 }
 
-fn as_u32_le(array: [u8; 4]) -> u32 {
-    ((array[0] as u32) << 0) +
-        ((array[1] as u32) << 8) +
-        ((array[2] as u32) << 16) +
-        ((array[3] as u32) << 24)
+fn to_rgba_32(r: u8, g: u8, b: u8) -> u32 {
+    ((r as u32) << 0) +
+        ((g as u32) << 8) +
+        ((b as u32) << 16) +
+        ((u8::MAX as u32) << 24)
 }
