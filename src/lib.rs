@@ -15,9 +15,9 @@ static mut IMG_BUFFER: [u32; MAX_PIXELS] = [0; MAX_PIXELS];
 pub unsafe extern fn render_js(cols: usize, rows: usize) {
     // This is function called from JavaScript, and should *only* be
     // called from JavaScript. This is not thread safe
-    mandelbrot::render_safe(IMG_BUFFER.iter_mut().enumerate(),
-                            |z| as_u32_le([z, z, z, u8::MAX]),
-                             cols, rows);
+    mandelbrot::render(IMG_BUFFER.iter_mut().enumerate(),
+                       |z| as_u32_le([z, z, z, u8::MAX]),
+                       cols, rows);
 }
 
 fn as_u32_le(array: [u8; 4]) -> u32 {

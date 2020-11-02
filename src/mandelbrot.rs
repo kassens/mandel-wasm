@@ -1,7 +1,7 @@
 use std::slice::IterMut;
 use std::iter::Enumerate;
 
-pub fn render_safe<T, F>(iter: Enumerate<IterMut<T>>, render_pixel: F, cols: usize, rows: usize) where
+pub fn render<T, F>(iter: Enumerate<IterMut<T>>, render_pixel: F, cols: usize, rows: usize) where
     F: Fn(u8) -> T {
 //pub fn render_safe(buffer: &mut [u32; MAX_PIXELS], cols: usize, rows: usize) {
     //let row_count = rows as u64;
