@@ -1,11 +1,22 @@
+#![allow(unused)]
+
 use fixed::{types::extra::U123, FixedI128};
 use num_complex::Complex;
+use std::str::FromStr;
 
 type Fix = FixedI128<U123>;
 type MaybeComplex = Option<Complex<Fix>>;
 
 #[test]
-fn it_works() {
+fn it_works(){
+    type MyFix = FixedI128<U123>;
+    let x = Fix::from_str("-9.079999999999999999999").unwrap();
+    let result = x.checked_mul(x);
+    println!("cehck {:#?}", result);
+}
+
+#[test]
+fn it_woks_x() {
     println!("{}", Fix::MIN);
     println!("{}", Fix::MAX);
     let one = Fix::from_num(1);
@@ -16,9 +27,31 @@ fn it_works() {
     println!("cehck {:#?}", checked);
     println!("one {} {}", one, oneone);
     println!("one {} {}", max, maxbb);
-    //let zz = calc_zf(zero, zero);
-    //let zz = calc_zf(Fix::MIN, Fix::MAX);
-    //println!("zzz {}", zz);
+    let zz = calc_zf(Fix::from_num(0), Fix::from_num(0));
+    println!("zz {}", zz);
+    let zzz = calc_zf(Fix::MIN, Fix::MAX);
+    println!("zzz {}", zzz);
+    let zzzz = calc_zf(Fix::from_num(0.2), Fix::from_num(0.3));
+    println!("zzzz {}", zzzz);
+
+    let width = 800;
+    let xa = -0.00000002;
+    let xb = 0.000000000001;
+
+    let step = Fix::from_bits(0b1);
+    println!("step {}", step);
+    let dist = Fix::from_num(xb-xa);
+    let steps = dist/width;
+    println!("steps {}", steps);
+
+    let prob = Fix::from_str("-9.0799999999999999999999999999999999879").unwrap();
+    let tt = prob.checked_add(prob);
+    println!("tt {:#?}", tt);
+    let xx = prob.abs();
+    let im = prob.checked_mul(xx);
+    println!("im {:#?}", im);
+
+
 
 
     /*
@@ -32,7 +65,7 @@ fn it_works() {
      */
 }
 
-fn _calc_zf(cx: Fix, cy: Fix) -> u8 {
+fn calc_zf(cx: Fix, cy: Fix) -> u8 {
     let bx: Fix = Fix::from_num(cx);
     let by: Fix = Fix::from_num(cy);
     let clamp: Fix = Fix::from_num(9);

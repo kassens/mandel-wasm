@@ -190,6 +190,7 @@ const w1 = makeWorker(data => {
         console.log('Ready!')
         w1.postMessage({center, stepSize, width, height});
     } else {
+        console.log('got', data)
         updateTexture(0, data.arr);
         //updateTexture(height, data.arr);
     }
