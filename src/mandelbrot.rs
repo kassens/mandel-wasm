@@ -31,6 +31,7 @@ fn calc_z(cx: Rational64, cy: Rational64) -> u8 {
 
     let mut i = 0;
     while i < u8::MAX && z.norm() < 3.0 {
+        //(a+bi)(c+di) = (ac−bd) + (ad+bc)i
         z = z*z+c;
         i += 1;
     }
