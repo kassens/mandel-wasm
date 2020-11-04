@@ -31,12 +31,12 @@ pub fn render<T, F>(iter: Enumerate<IterMut<T>>, store_pixel: F, step_size: i64,
 fn calc_z(cx: Fix, cy: Fix) -> u8 {
     let bx: Fix = Fix::from_num(cx);
     let by: Fix = Fix::from_num(cy);
-    let clamp: Fix = Fix::from_num(9);
+    let clamp: Fix = Fix::from_num(4);
     let c = Complex::new(bx, by);
 
     let mut i = 0;
     let mut z = Some(c);
-    while i < u8::MAX && in_bounds(z, clamp) {
+    while i < u8::MAX && clamp_norm(z, clamp) {
         //(a+biw(c+di) = (ac−bd) + (ad+bc)i
         z = iter_z(z, c);
         i += 1;
@@ -44,8 +44,8 @@ fn calc_z(cx: Fix, cy: Fix) -> u8 {
     return i;
 }
 
-fn in_bounds(opt_lz: MaybeComplex, clamp: Fix) -> bool {
-    match square_z(opt_lz) {
+fn clamp_norm(opt_lz: MaybeComplex, clamp: Fix) -> bool {
+    match norm_square(opt_lz) {
         Some(n) => n < clamp,
         None => false
     }
@@ -58,7 +58,7 @@ fn iter_z(opt_lz: MaybeComplex, c: Complex<Fix>) -> MaybeComplex {
     Some(Complex::new(sqr_re.checked_add(c.re)?, sqr_im.checked_add(c.im)?))
 }
 
-fn square_z(o: MaybeComplex) -> Option<Fix> {
+fn norm_square(o: MaybeComplex) -> Option<Fix> {
     let lz = o?;
     let im = mul_safe(lz.im, lz.im)?;
     sq_safe(lz.re)?.checked_add(im)
@@ -71,7 +71,7 @@ fn sq_safe(a: Fix) -> Option<Fix> {
 }
 
 fn mul_safe(a: Fix, b: Fix) -> Option<Fix> {
-    let negate = (a.is_negative() && b.is_positive()) || (a.is_positive() && b.is_negative());
+    let negate = a.is_positive() != b.is_positive();
     let result = a.abs().checked_mul(b.abs())?;
     if negate { result.checked_neg() } else { Some(result) }
 }

@@ -190,7 +190,7 @@ const w1 = makeWorker(data => {
         console.log('Ready!')
         w1.postMessage({center, stepSize, width, height});
     } else {
-        console.log('got', data)
+        console.log('got', Date.now() - data.time, data);
         updateTexture(0, data.arr);
         //updateTexture(height, data.arr);
     }
@@ -206,5 +206,5 @@ function clickHandler(e) {
     center.y *= scaleFac;
     stepSize *= scaleFac;
     console.log(stepSize)
-    w1.postMessage({center, stepSize, width, height});
+    w1.postMessage({center, stepSize, width, height, time:Date.now()});
 }
