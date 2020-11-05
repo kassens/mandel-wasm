@@ -12,7 +12,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut img_buf = vec![Rgba([0, 0, 0, 0]); rows * cols];
 
-    let step_size: i64 = 300;
+    let step_size: i64 = 100;
     /*
     let x_start: i64 = (3681 * step_size)/10000 - cols as i64/2;
     let y_start: i64 = (150*step_size)/1000 - rows as i64/2;

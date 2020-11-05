@@ -23,10 +23,68 @@ pub fn render<T, F>(iter: Enumerate<IterMut<T>>, store_pixel: F, step_size: i64,
         let cx: Fix = step.mul((x_start + x_offset) as i128);
         let cy: Fix = step.mul((y_start + y_offset) as i128);
         let z = calc_z(cx, cy);
-        *pixel = store_pixel(z, z, z);
+        let (r, g, b) = map_z(z);
+        *pixel = store_pixel(r, g, b);
     }
 }
 
+#[derive(Copy, Clone)]
+enum ColorFn {
+    Const(u8),
+    Range(u8, u8),
+}
+
+const RANGES: [(u8, (ColorFn, ColorFn, ColorFn)); 2] = [
+    (6, (ColorFn::Const(0), ColorFn::Const(0), ColorFn::Range(0, 250))),
+    /*
+    (62, (ColorFn::Range(0, 250), ColorFn::Range(0,250), ColorFn::Const(250))),
+    (125, (ColorFn::Const(250), ColorFn::Const(250), ColorFn::Range(250,0))),
+    (250, (ColorFn::Range(250,0), ColorFn::Const(250), ColorFn::Const(0))),
+    (u8::MAX, (ColorFn::Const(250), ColorFn::Range(250,0), ColorFn::Const(0))),
+     */
+    (u8::MAX, (ColorFn::Range(255,0), ColorFn::Range(255,0), ColorFn::Range(255,0))),
+];
+
+fn map_color(range_info: (u8, u8), color_fn: ColorFn) -> u8 {
+    match color_fn {
+        ColorFn::Const(c) => c,
+        ColorFn::Range(c0, c1) => {
+            let (pos, steps) = range_info;
+            let ci0 = c0 as i16;
+            let ci1 = c1 as i16;
+            let target_range: i16 = ci1 - ci0;
+            let range_step = target_range/steps as i16;
+            let v :i16 = ci0 + range_step * pos as i16;
+            return v as u8;
+        }
+    }
+}
+
+fn map_z(z: u8) -> (u8, u8, u8) {
+    let mut low = 0u8;
+    for i in 0..RANGES.len() {
+        let ( high, (r,g,b)) = RANGES[i];
+        if z <= high {
+            let steps = high - low;
+            let range = (z - low, steps);
+            return (map_color(range, r),
+                    map_color(range,g),
+                    map_color(range,b));
+        }
+        low = high;
+    }
+    //this should be unreachable
+    (0, 0, 0)
+}
+
+
+#[test]
+fn test_render_map() {
+    for z in (u8::MIN..u8::MAX).step_by(5) {
+        let (r, g, b) = map_z(z);
+        println!("{}: ({},{}, {})", z, r, g, b)
+    }
+}
 
 fn calc_z(cx: Fix, cy: Fix) -> u8 {
     let bx: Fix = Fix::from_num(cx);
@@ -36,9 +94,10 @@ fn calc_z(cx: Fix, cy: Fix) -> u8 {
 
     let mut i = 0;
     let mut z = Some(c);
-    while i < u8::MAX && clamp_norm(z, clamp) {
+    while i < u8::MAX {
         //(a+biw(c+di) = (ac−bd) + (ad+bc)i
         z = iter_z(z, c);
+        if !clamp_norm(z, clamp) { break; }
         i += 1;
     }
     return i;
@@ -53,7 +112,7 @@ fn clamp_norm(opt_lz: MaybeComplex, clamp: Fix) -> bool {
 
 fn iter_z(opt_lz: MaybeComplex, c: Complex<Fix>) -> MaybeComplex {
     let lz = opt_lz?;
-    let sqr_re = sq_safe(lz.re)?.checked_sub( sq_safe(lz.im)?)?;
+    let sqr_re = sq_safe(lz.re)?.checked_sub(sq_safe(lz.im)?)?;
     let sqr_im = mul_safe(lz.re, mul_safe(lz.im, Fix::from_num(2))?)?;
     Some(Complex::new(sqr_re.checked_add(c.re)?, sqr_im.checked_add(c.im)?))
 }
@@ -65,7 +124,7 @@ fn norm_square(o: MaybeComplex) -> Option<Fix> {
 }
 
 fn sq_safe(a: Fix) -> Option<Fix> {
-    //weird but this seems to panic with negative numbers where result overflows
+    //weird but this seems to panic with negative numbers where the result overflows
     let ab = a.abs();
     ab.checked_mul(ab)
 }
