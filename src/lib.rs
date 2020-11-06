@@ -16,8 +16,8 @@ pub unsafe extern fn render_js(step_size:i64, center_x:i64, cols: usize, center_
     // This is function called from JavaScript, and should *only* be
     // called from JavaScript. This is not thread safe
     mandelbrot::render(IMG_BUFFER.iter_mut().enumerate(),
-                       to_rgba_32, step_size,
-                      center_x, cols, center_y, rows);
+                       to_rgba_32, step_size as i128,
+                      center_x as i128, cols, center_y as i128, rows);
 }
 
 fn to_rgba_32(r: u8, g: u8, b: u8) -> u32 {

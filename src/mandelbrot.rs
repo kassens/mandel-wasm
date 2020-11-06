@@ -2,6 +2,7 @@ use std::slice::IterMut;
 use std::iter::Enumerate;
 use num_complex::Complex;
 use fixed::{types::extra::U123, FixedI128};
+use std::time::SystemTime;
 
 type Fix = FixedI128<U123>;
 type MaybeComplex = Option<Complex<Fix>>;
@@ -15,12 +16,19 @@ pub fn render<T, F>(iter: Enumerate<IterMut<T>>, store_pixel: F, step_size: i128
     let y_center = step * center_y;
     let mid_col = cols/2;
     let mid_row = rows/2;
+    let mut now = SystemTime::now();
+
     for (index, pixel) in iter {
         let x = index % cols;
         let y = index / cols;
+        if index % 5555 == 0 {
+            let t = SystemTime::now();
+            println!("Time {:?} x:{} y: {}", (t.duration_since(now)), x, y);
+            now = t;
+        }
         if y >= rows { break; }
-        let x_offset = step * (x as i64 - mid_col as i64) as i128;
-        let y_offset = step * (y as i64 - mid_row as i64) as i128;
+        let x_offset = step * (x as i128 - mid_col as i128);
+        let y_offset = step * (y as i128 - mid_row as i128);
         let z = calc_z(x_center + x_offset, y_center+ y_offset);
         let (r, g, b) = map_z(z);
         *pixel = store_pixel(r, g, b);
