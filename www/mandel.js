@@ -39,8 +39,8 @@ function getRenderer() {
         setTextureCoords(pong ? texturePong : texturePing);
     }
 
-    window.updateTexture = function(y, arr) {
-        let img = new ImageData(arr, width, height);
+    window.updateTexture = function(y, arr, chunkHeight) {
+        let img = new ImageData(arr, width, chunkHeight);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, img);
         render();
 
@@ -175,18 +175,45 @@ function animate() {
     requestAnimationFrame(step);
 }
 
-function makeWorker(handler) {
+function makeWorker() {
     const worker = new Worker("./worker.js");
-    worker.onmessage = function(event) {
-        handler(event.data);
-    };
-    return worker;
+    let isResolved = false;
+    return new Promise((resolve, reject) => {
+        worker.onmessage = function(event) {
+            if (!isResolved && event.data == "READY") {
+                isResolved = true;
+                resolve(worker);
+            } else {
+                let data = event.data;
+                let y = data.y;
+                console.log(data.r)
+                let {chunkHeight, offset} = data.r;
+                updateTexture(offset * chunkHeight, data.arr);
+            }
+        }
+    });
 }
 
-let center = {x:BigInt(-90), y:BigInt(0)};
+//let center = {x:BigInt(-90), y:BigInt(0)};
+let start = {x:BigInt(-340), y:BigInt(-200)};
 let stepSize = BigInt(160);
 const scaleFac = BigInt(10);
-const mid = {x: BigInt(width/2), y: BigInt(height/2)};
+let promisedWorkers =Array(4).fill(null).map(makeWorker);
+console.log('romis', promisedWorkers);
+let workers = null;
+Promise.all(promisedWorkers).then(values => {
+    console.log('workers', values)
+    workers = values;
+    let y = start.y;
+    const chunkHeight = 100;
+    workers.map((w, i) => {
+        let y = start.y + BigInt(chunkHeight*i);
+        let r = {chunkHeight, offset: i};
+        w.postMessage({x: start.x, y, stepSize, width, height: chunkHeight, r});
+    });
+})
+
+/*
 const w1 = makeWorker(data => {
     if (data == "READY") {
         console.log('Ready!')
@@ -197,6 +224,7 @@ const w1 = makeWorker(data => {
         //updateTexture(height, data.arr);
     }
 });
+*/
 
 function clickHandler(e) {
     let x = BigInt(e.offsetX);

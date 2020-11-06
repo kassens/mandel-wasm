@@ -5,12 +5,12 @@ async function init() {
 
     onmessage = function (e) {
         let chunk = e.data;
-        let {center, stepSize, width, height} = chunk;
-        console.log("hi", center, stepSize, width, height);
+        let {x, y, stepSize, width, height} = chunk;
 
         const buffer_address = instance.exports.IMG_BUFFER.value;
+        console.log("render", x, y, stepSize, width, height);
         instance.exports.render_js(
-            BigInt(stepSize), BigInt(center.x), width, BigInt(center.y), height);
+            BigInt(stepSize), BigInt(x), width, BigInt(y), height);
 
         const asArray = new Uint8ClampedArray(
             instance.exports.memory.buffer,
