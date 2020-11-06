@@ -1,12 +1,6 @@
 mod mandelbrot;
 
-extern crate num_complex;
-
-//use num_rational::{Ratio, BigRational};
-//use num_bigint::BigInt;
-
-const MAX_DIM: usize = 2200;
-const MAX_PIXELS: usize = MAX_DIM * MAX_DIM;
+const MAX_PIXELS: usize = 200 * 800;
 
 #[no_mangle]
 static mut IMG_BUFFER: [u32; MAX_PIXELS] = [0; MAX_PIXELS];

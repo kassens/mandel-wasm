@@ -184,7 +184,7 @@ function makeWorker(handler) {
 }
 
 let center = {x:0, y:0};
-let stepSize = 180;
+let stepSize = BigInt(180);
 const w1 = makeWorker(data => {
     if (data == "READY") {
         console.log('Ready!')
@@ -199,9 +199,9 @@ const w1 = makeWorker(data => {
 function clickHandler(e) {
     let x = e.offsetX
     let y = e.offsetY
-    center.x += x - width/2;
-    center.y += y - height/2;
-    let scaleFac = 10;
+    center.x += BigInt(x - width/2);
+    center.y += BigInt(y - height/2);
+    let scaleFac = BigInt(10);
     center.x *= scaleFac;
     center.y *= scaleFac;
     stepSize *= scaleFac;

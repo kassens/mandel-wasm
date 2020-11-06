@@ -7,7 +7,7 @@ use std::time::SystemTime;
 type Fix = FixedI128<U123>;
 type MaybeComplex = Option<Complex<Fix>>;
 
-const MAX_ITER: usize = 1000;
+const MAX_ITER: usize = 500;
 pub fn render<T, F>(iter: Enumerate<IterMut<T>>, store_pixel: F, step_size: i128,
                     center_x: i128, cols: usize, center_y: i128, rows: usize) where
     F: Fn(u8, u8, u8) -> T {
@@ -44,14 +44,8 @@ enum ColorFn {
 
 const RANGES: [(usize, (ColorFn, ColorFn, ColorFn)); 4] = [
     (10, (ColorFn::Const(0), ColorFn::Const(0), ColorFn::Range(0, 250))),
-    (300, (ColorFn::Range(0,255), ColorFn::Range(0, 255), ColorFn::Const(255))),
-    /*
-    (62, (ColorFn::Range(0, 250), ColorFn::Range(0,250), ColorFn::Const(250))),
-    (125, (ColorFn::Const(250), ColorFn::Const(250), ColorFn::Range(250,0))),
-    (250, (ColorFn::Range(250,0), ColorFn::Const(250), ColorFn::Const(0))),
-    (u8::MAX, (ColorFn::Const(250), ColorFn::Range(250,0), ColorFn::Const(0))),
-     */
-    (650, (ColorFn::Range(255,0), ColorFn::Const(255), ColorFn::Range(255,0))),
+    (200, (ColorFn::Range(0,255), ColorFn::Range(0, 255), ColorFn::Const(255))),
+    (350, (ColorFn::Range(255,0), ColorFn::Const(255), ColorFn::Range(255,0))),
     (MAX_ITER, (ColorFn::Const(0), ColorFn::Range(255,0), ColorFn::Const(0))),
 ];
 
