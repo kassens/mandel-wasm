@@ -6,6 +6,7 @@ async function init() {
     onmessage = function (e) {
         let chunk = e.data;
         let {center, stepSize, width, height} = chunk;
+        console.log("hi", center, stepSize, width, height);
 
         const buffer_address = instance.exports.IMG_BUFFER.value;
         instance.exports.render_js(

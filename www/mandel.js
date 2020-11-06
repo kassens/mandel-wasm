@@ -183,8 +183,10 @@ function makeWorker(handler) {
     return worker;
 }
 
-let center = {x:0, y:0};
-let stepSize = BigInt(180);
+let center = {x:BigInt(-90), y:BigInt(0)};
+let stepSize = BigInt(160);
+const scaleFac = BigInt(10);
+const mid = {x: BigInt(width/2), y: BigInt(height/2)};
 const w1 = makeWorker(data => {
     if (data == "READY") {
         console.log('Ready!')
@@ -197,14 +199,13 @@ const w1 = makeWorker(data => {
 });
 
 function clickHandler(e) {
-    let x = e.offsetX
-    let y = e.offsetY
-    center.x += BigInt(x - width/2);
-    center.y += BigInt(y - height/2);
-    let scaleFac = BigInt(10);
+    let x = BigInt(e.offsetX);
+    let y = BigInt(e.offsetY);
+    center.x += x - mid.x;
+    center.y += y - mid.y;
     center.x *= scaleFac;
     center.y *= scaleFac;
     stepSize *= scaleFac;
-    console.log(stepSize)
+    console.log({center, stepSize, width, height});
     w1.postMessage({center, stepSize, width, height, time:Date.now()});
 }
