@@ -1,6 +1,6 @@
 mod mandelbrot;
 
-const MAX_PIXELS: usize = 200 * 800;
+const MAX_PIXELS: usize = 800 * 800;
 
 #[no_mangle]
 static mut IMG_BUFFER: [u32; MAX_PIXELS] = [0; MAX_PIXELS];
