@@ -12,15 +12,14 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut img_buf = vec![Rgba([0, 0, 0, 0]); rows * cols];
 
-    let step_size: i64 = 100;
-    /*
-    let x_start: i64 = (3681 * step_size)/10000 - cols as i64/2;
-    let y_start: i64 = (150*step_size)/1000 - rows as i64/2;
-    println!("x:{}", x_start as f64/step_size as f64);
-    println!("y:{}", y_start as f64/step_size as f64);
-     */
+    let center_x= 0;
+    let center_y= 0;
+    let step_size= 100;
+    //let center_x= -15807661210i128;
+    //let center_y= 406310893050i128;
+    //let step_size= 1800000000000i128;
     mandelbrot::render(img_buf.iter_mut().enumerate(), store_pixel,
-                       step_size, 0, cols, 0, rows);
+                       step_size, center_x, cols, center_y, rows);
 
     let mut img: image::ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(cols as u32, rows as u32);
     // it seems silly we have to do this but I couldn't get IterMut and PixelsMut to line up, type-wise

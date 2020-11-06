@@ -2,31 +2,31 @@ use std::slice::IterMut;
 use std::iter::Enumerate;
 use num_complex::Complex;
 use fixed::{types::extra::U123, FixedI128};
-use std::ops::{Mul, Div};
 
 type Fix = FixedI128<U123>;
 type MaybeComplex = Option<Complex<Fix>>;
 
-pub fn render<T, F>(iter: Enumerate<IterMut<T>>, store_pixel: F, step_size: i64,
-                    center_x: i64, cols: usize, center_y: i64, rows: usize) where
+const MAX_ITER: usize = 1000;
+pub fn render<T, F>(iter: Enumerate<IterMut<T>>, store_pixel: F, step_size: i128,
+                    center_x: i128, cols: usize, center_y: i128, rows: usize) where
     F: Fn(u8, u8, u8) -> T {
-    let step: Fix = Fix::from_num(1).div(step_size as i128);
-    let icols = cols as i64;
-    let irows = rows as i64;
-    let x_start = center_x - icols / 2i64;
-    let y_start = center_y - irows / 2i64;
-    for (uindex, pixel) in iter {
-        let index = uindex as i64;
-        let x_offset = (index % icols) as i64;
-        let y_offset = index / icols as i64;
-        if y_offset >= irows { break; }
-        let cx: Fix = step.mul((x_start + x_offset) as i128);
-        let cy: Fix = step.mul((y_start + y_offset) as i128);
-        let z = calc_z(cx, cy);
+    let step: Fix = Fix::from_num(1)/step_size;
+    let x_center = step * center_x;
+    let y_center = step * center_y;
+    let mid_col = cols/2;
+    let mid_row = rows/2;
+    for (index, pixel) in iter {
+        let x = index % cols;
+        let y = index / cols;
+        if y >= rows { break; }
+        let x_offset = step * (x as i64 - mid_col as i64) as i128;
+        let y_offset = step * (y as i64 - mid_row as i64) as i128;
+        let z = calc_z(x_center + x_offset, y_center+ y_offset);
         let (r, g, b) = map_z(z);
         *pixel = store_pixel(r, g, b);
     }
 }
+
 
 #[derive(Copy, Clone)]
 enum ColorFn {
@@ -34,39 +34,43 @@ enum ColorFn {
     Range(u8, u8),
 }
 
-const RANGES: [(u8, (ColorFn, ColorFn, ColorFn)); 2] = [
-    (6, (ColorFn::Const(0), ColorFn::Const(0), ColorFn::Range(0, 250))),
+const RANGES: [(usize, (ColorFn, ColorFn, ColorFn)); 4] = [
+    (10, (ColorFn::Const(0), ColorFn::Const(0), ColorFn::Range(0, 250))),
+    (300, (ColorFn::Range(0,255), ColorFn::Range(0, 255), ColorFn::Const(255))),
     /*
     (62, (ColorFn::Range(0, 250), ColorFn::Range(0,250), ColorFn::Const(250))),
     (125, (ColorFn::Const(250), ColorFn::Const(250), ColorFn::Range(250,0))),
     (250, (ColorFn::Range(250,0), ColorFn::Const(250), ColorFn::Const(0))),
     (u8::MAX, (ColorFn::Const(250), ColorFn::Range(250,0), ColorFn::Const(0))),
      */
-    (u8::MAX, (ColorFn::Range(255,0), ColorFn::Range(255,0), ColorFn::Range(255,0))),
+    (650, (ColorFn::Range(255,0), ColorFn::Const(255), ColorFn::Range(255,0))),
+    (MAX_ITER, (ColorFn::Const(0), ColorFn::Range(255,0), ColorFn::Const(0))),
 ];
 
-fn map_color(range_info: (u8, u8), color_fn: ColorFn) -> u8 {
+fn map_color(range_info: (usize, usize), color_fn: ColorFn) -> u8 {
     match color_fn {
         ColorFn::Const(c) => c,
         ColorFn::Range(c0, c1) => {
             let (pos, steps) = range_info;
-            let ci0 = c0 as i16;
-            let ci1 = c1 as i16;
-            let target_range: i16 = ci1 - ci0;
-            let range_step = target_range/steps as i16;
-            let v :i16 = ci0 + range_step * pos as i16;
+            let ci0 = c0 as f64;
+            let ci1 = c1 as f64;
+            let target_range: f64 = ci1 - ci0;
+            let range_step :f64 = target_range/steps as f64;
+            //println!("target {} rangestep {}", target_range, range_step);
+            let v :f64 = ci0 + range_step * pos as f64;
             return v as u8;
         }
     }
 }
 
-fn map_z(z: u8) -> (u8, u8, u8) {
-    let mut low = 0u8;
+fn map_z(z: usize) -> (u8, u8, u8) {
+    let mut low = 0;
     for i in 0..RANGES.len() {
         let ( high, (r,g,b)) = RANGES[i];
         if z <= high {
             let steps = high - low;
             let range = (z - low, steps);
+            //println!("steps {} pos {}", steps, z-low);
             return (map_color(range, r),
                     map_color(range,g),
                     map_color(range,b));
@@ -80,13 +84,13 @@ fn map_z(z: u8) -> (u8, u8, u8) {
 
 #[test]
 fn test_render_map() {
-    for z in (u8::MIN..u8::MAX).step_by(5) {
+    for z in (5..MAX_ITER).step_by(25) {
         let (r, g, b) = map_z(z);
         println!("{}: ({},{}, {})", z, r, g, b)
     }
 }
 
-fn calc_z(cx: Fix, cy: Fix) -> u8 {
+fn calc_z(cx: Fix, cy: Fix) -> usize {
     let bx: Fix = Fix::from_num(cx);
     let by: Fix = Fix::from_num(cy);
     let clamp: Fix = Fix::from_num(4);
@@ -94,7 +98,7 @@ fn calc_z(cx: Fix, cy: Fix) -> u8 {
 
     let mut i = 0;
     let mut z = Some(c);
-    while i < u8::MAX {
+    while i < MAX_ITER {
         //(a+biw(c+di) = (ac−bd) + (ad+bc)i
         z = iter_z(z, c);
         if !clamp_norm(z, clamp) { break; }
