@@ -1,8 +1,6 @@
 "use strict";
-const width = 500;
-const height = 400;
 
-function getRenderer() {
+function getRenderer(width, height) {
     const canvas = document.getElementById('viewport');
     canvas.addEventListener('click', clickHandler, false);
     const gl = WebGLDebugUtils.makeDebugContext(canvas.getContext("webgl"));
@@ -28,27 +26,26 @@ function getRenderer() {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);  
 
+    gl.viewport(0, 0, width, height);
+
     const setTextureCoords = createPositionBuffer(gl, gl.getAttribLocation(program, "a_tex"));
     const topSquare    = [0.0, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.5, 1.0, 0.0, 1.0, 0.5];
     const bottomSquare = topSquare.map((v, n) => v + n%2 * 0.5);
     const texturePing = new Float32Array(topSquare.concat(bottomSquare));
     const texturePong = new Float32Array(bottomSquare.concat(topSquare));
     let pong = true;
-    window.resetAnimation = function() {
+    const resetAnimation = function() {
         pong = !pong;
         setTextureCoords(pong ? texturePong : texturePing);
     }
 
-    window.updateTexture = function(y, arr, chunkHeight) {
+    const copyTexture = function(y, arr, chunkHeight) {
         let img = new ImageData(arr, width, chunkHeight);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, img);
         render();
-
     }
-    resetAnimation();
-    
-    gl.viewport(0, 0, width, height);
-    return function render(scale) {
+
+    const render = function (scale) {
         if (!scale) scale=1;
         gl.useProgram(program);
         const scaleLocation = gl.getUniformLocation(program, "u_scale");
@@ -60,6 +57,7 @@ function getRenderer() {
         var count = 12;
         gl.drawArrays(primitiveType, offset, count);
     }
+    return {resetAnimation, copyTexture, render};
 }
 
 window.scaleArr = [1,1]
@@ -153,9 +151,6 @@ void main() {
    
 }`;
 
-window.render = getRenderer();
-
-render();
 function animate() {
     const segmentDuration = 2000;
     let start = null;
@@ -174,57 +169,53 @@ function animate() {
 
     requestAnimationFrame(step);
 }
-
-function makeWorker() {
-    const worker = new Worker("./worker.js");
-    let isResolved = false;
-    return new Promise((resolve, reject) => {
-        worker.onmessage = function(event) {
-            if (!isResolved && event.data == "READY") {
-                isResolved = true;
-                resolve(worker);
-            } else {
-                let data = event.data;
-                let y = data.y;
-                console.log(data.r)
-                let {chunkHeight, offset} = data.r;
-                updateTexture(offset * chunkHeight, data.arr);
-            }
-        }
-    });
-}
-
 //let center = {x:BigInt(-90), y:BigInt(0)};
 let start = {x:BigInt(-340), y:BigInt(-200)};
 let stepSize = BigInt(160);
 const scaleFac = BigInt(10);
-let promisedWorkers =Array(4).fill(null).map(makeWorker);
-console.log('romis', promisedWorkers);
-let workers = null;
-Promise.all(promisedWorkers).then(values => {
-    console.log('workers', values)
-    workers = values;
-    let y = start.y;
-    const chunkHeight = 100;
-    workers.map((w, i) => {
-        let y = start.y + BigInt(chunkHeight*i);
-        let r = {chunkHeight, offset: i};
-        w.postMessage({x: start.x, y, stepSize, width, height: chunkHeight, r});
-    });
-})
 
-/*
-const w1 = makeWorker(data => {
-    if (data == "READY") {
-        console.log('Ready!')
-        w1.postMessage({center, stepSize, width, height});
-    } else {
-        console.log('got', Date.now() - data.time, data);
-        updateTexture(0, data.arr);
-        //updateTexture(height, data.arr);
+// does not queue
+async function getTextureUpdater(count, width, height, copyTexture) {
+    let workers = await Promise.all(Array(count).fill(null).map(makeWorker));
+    return async function({x, y, stepSize}, textureNum) {
+        const available = workers.length;
+        if (!available) throw new Error("No workers available");
+        const chunkHeight = height/available;
+        const getChunkOffset = n => chunkHeight * n;
+        let buffers = await Promise.all(workers.map(
+                (work, n) => work(x, y + BigInt(getChunkOffset(n)), width, chunkHeight, stepSize)));
+        let offset = textureNum * height;
+        buffers.forEach(
+            (data, n) => copyTexture(offset + getChunkOffset(n), data.arr, chunkHeight));
     }
-});
-*/
+}
+
+function makeWorker() {
+    const worker = new Worker("./worker.js");
+    return new Promise((resolveWorker, rejectWorker) => {
+        let resolver = null;
+        let t = null;
+        worker.onmessage = function(event) {
+            if (event.data == "READY") {
+                resolveWorker(function(x, y, width, height, stepSize) {
+                    t = Date.now();
+                    return new Promise((resolve, reject) => {
+                        // no queuing
+                        if (resolver != null) reject();
+                        resolver = resolve;
+                        worker.postMessage({x, y, width, height, stepSize});
+                    });
+                });
+            } else {
+                console.log('worker took', Date.now() - t);
+                const resolve = resolver;
+                resolver = null;
+                t = null;
+                resolve(event.data);
+            }
+        }
+    });
+}
 
 function clickHandler(e) {
     let x = BigInt(e.offsetX);
@@ -235,5 +226,20 @@ function clickHandler(e) {
     center.y *= scaleFac;
     stepSize *= scaleFac;
     console.log({center, stepSize, width, height});
-    w1.postMessage({center, stepSize, width, height, time:Date.now()});
+    //w1.postMessage({center, stepSize, width, height, time:Date.now()});
 }
+
+async function init() {
+    const [width, height] = [500, 400];
+    const {render, copyTexture, resetAnimation} = getRenderer(width, height);
+    resetAnimation();
+    const callWorkers = await getTextureUpdater(4, width, height, copyTexture);
+    let frameInfo = {
+        x:BigInt(-340), 
+        y:BigInt(-200),
+        stepSize : BigInt(160),
+    }
+    await callWorkers(frameInfo, 0);
+}
+
+init();
