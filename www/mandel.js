@@ -1,8 +1,7 @@
 "use strict";
 
-function getRenderer(width, height) {
+function getRenderer(width, height, clickHandler) {
     const canvas = document.getElementById('viewport');
-    canvas.addEventListener('click', clickHandler, false);
     const gl = WebGLDebugUtils.makeDebugContext(canvas.getContext("webgl"));
     const program = createProgram(gl, vertexSource, fragmentSource);
 
@@ -39,6 +38,10 @@ function getRenderer(width, height) {
         setTextureCoords(pong ? texturePong : texturePing);
     }
 
+    const setClickHandler = function (clickHandler) {
+        canvas.addEventListener('click', clickHandler, false);
+    }
+
     const copyTexture = function(y, arr, chunkHeight) {
         let img = new ImageData(arr, width, chunkHeight);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, img);
@@ -57,7 +60,7 @@ function getRenderer(width, height) {
         var count = 12;
         gl.drawArrays(primitiveType, offset, count);
     }
-    return {resetAnimation, copyTexture, render};
+    return {resetAnimation, copyTexture, render, setClickHandler};
 }
 
 window.scaleArr = [1,1]
@@ -169,15 +172,14 @@ function animate() {
 
     requestAnimationFrame(step);
 }
-//let center = {x:BigInt(-90), y:BigInt(0)};
 let start = {x:BigInt(-340), y:BigInt(-200)};
 let stepSize = BigInt(160);
-const scaleFac = BigInt(10);
 
 // does not queue
 async function getTextureUpdater(count, width, height, copyTexture) {
     let workers = await Promise.all(Array(count).fill(null).map(makeWorker));
-    return async function({x, y, stepSize}, textureNum) {
+    return async function(frameInfo, textureNum) {
+        const {x, y, stepSize} = frameInfo;
         const available = workers.length;
         if (!available) throw new Error("No workers available");
         const chunkHeight = height/available;
@@ -187,6 +189,7 @@ async function getTextureUpdater(count, width, height, copyTexture) {
         let offset = textureNum * height;
         buffers.forEach(
             (data, n) => copyTexture(offset + getChunkOffset(n), data.arr, chunkHeight));
+        return frameInfo;
     }
 }
 
@@ -217,29 +220,33 @@ function makeWorker() {
     });
 }
 
-function clickHandler(e) {
-    let x = BigInt(e.offsetX);
-    let y = BigInt(e.offsetY);
-    center.x += x - mid.x;
-    center.y += y - mid.y;
-    center.x *= scaleFac;
-    center.y *= scaleFac;
-    stepSize *= scaleFac;
-    console.log({center, stepSize, width, height});
-    //w1.postMessage({center, stepSize, width, height, time:Date.now()});
-}
-
 async function init() {
-    const [width, height] = [500, 400];
-    const {render, copyTexture, resetAnimation} = getRenderer(width, height);
+    const DIMENSIONS = [500, 400];
+    const [width, height] = DIMENSIONS;
+    const [centerX, centerY] = DIMENSIONS.map(x=> BigInt(x/2));
+
+    const {render, copyTexture, resetAnimation, setClickHandler} = getRenderer(width, height);
     resetAnimation();
     const callWorkers = await getTextureUpdater(4, width, height, copyTexture);
-    let frameInfo = {
-        x:BigInt(-340), 
-        y:BigInt(-200),
-        stepSize : BigInt(160),
+    const initialFrame = {x:BigInt(-340), y:BigInt(-200), stepSize : BigInt(160)}
+    let frameInfo = await callWorkers(initialFrame, 0);
+
+    console.log(centerX, centerY)
+    const SCALE_FACTOR = BigInt(10);
+    setClickHandler(function(e) {
+        const x = SCALE_FACTOR * (frameInfo.x + BigInt(e.offsetX)) - centerX;
+        const y = SCALE_FACTOR * (frameInfo.y + BigInt(e.offsetY)) - centerY;
+        const stepSize = SCALE_FACTOR * frameInfo.stepSize;
+        console.log(frameInfo, e.offsetX, e.offsetY, x, y, centerX, centerY)
+        // add animation here
+        Promise.all([callWorkers({x, y, stepSize}, 0)]).then(completeUpdate);
+    });
+
+    function completeUpdate([newFrameInfo, animComplete]) {
+        console.log('newFrameInfo', newFrameInfo)
+        frameInfo = newFrameInfo;
     }
-    await callWorkers(frameInfo, 0);
+
 }
 
 init();
