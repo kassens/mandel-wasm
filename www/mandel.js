@@ -155,6 +155,7 @@ void main() {
 }`;
 
 function animate() {
+    return;
     const segmentDuration = 2000;
     let start = null;
     const step = function(ts) {
@@ -237,9 +238,11 @@ async function init() {
         const x = SCALE_FACTOR * (frameInfo.x + BigInt(e.offsetX)) - centerX;
         const y = SCALE_FACTOR * (frameInfo.y + BigInt(e.offsetY)) - centerY;
         const stepSize = SCALE_FACTOR * frameInfo.stepSize;
-        console.log(frameInfo, e.offsetX, e.offsetY, x, y, centerX, centerY)
         // add animation here
-        Promise.all([callWorkers({x, y, stepSize}, 0)]).then(completeUpdate);
+        Promise.all([
+            callWorkers({x, y, stepSize}, 0),
+            animate({x, y, stepSize}, 0)])
+        .then(completeUpdate);
     });
 
     function completeUpdate([newFrameInfo, animComplete]) {

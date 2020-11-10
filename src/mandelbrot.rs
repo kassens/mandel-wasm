@@ -119,13 +119,9 @@ fn norm_square(o: MaybeComplex) -> Option<Fix> {
 }
 
 fn sq_safe(a: Fix) -> Option<Fix> {
-    //weird but this seems to panic with negative numbers where the result overflows
-    let ab = a.abs();
-    ab.checked_mul(ab)
+    mul_safe(a, a)
 }
 
 fn mul_safe(a: Fix, b: Fix) -> Option<Fix> {
-    let negate = a.is_positive() != b.is_positive();
-    let result = a.abs().checked_mul(b.abs())?;
-    if negate { result.checked_neg() } else { Some(result) }
+    a.checked_mul(b)
 }
