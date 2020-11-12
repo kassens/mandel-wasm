@@ -42,7 +42,7 @@ function makeWorker(workerFile, free) {
             //this must be called by the worker when it initializes
             if (event.data != "READY") throw new Error("Worker inialization error.");
         } else {
-            console.log('worker took', Date.now() - t);
+            //console.log('worker took', Date.now() - t);
             const resolve = resolver;
             resolver = null;
             t = null;

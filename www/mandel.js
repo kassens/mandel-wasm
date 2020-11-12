@@ -4,12 +4,12 @@ let start = {x:BigInt(-340), y:BigInt(-200)};
 let stepSize = BigInt(160);
 
 export default async function init(canvas, width, height) {
-    const [centerX, centerY] = [width, height].map(x=> BigInt(x/2));
-    const SCALE_FACTOR = BigInt(10);
+    const [centerX, centerY] = [width, height].map(x=> x/2);
+    const SCALE_FACTOR = 10;
+    const SCALE_FACTORb = BigInt(SCALE_FACTOR);
 
     const gl = WebGLDebugUtils.makeDebugContext(canvas.getContext("webgl"));
-    const {render, copyTexture, resetAnimation} = getRenderer(gl, width, height);
-    resetAnimation();
+    const {copyTexture, setupTransition} = getRenderer(gl, width, height);
     const enqueueWork = getTextureUpdater('./wasmwrapper.js', 8);
     let frameInfo = {x:BigInt(-340), y:BigInt(-200), stepSize : BigInt(160)}
     const initialTasks = getFrameRenderParams(frameInfo, width, height);
@@ -21,22 +21,28 @@ export default async function init(canvas, width, height) {
     Promise.all(promises).then( _ => console.log("did", Date.now() - tstart));
 
     const clickHandler = function(e) {
-        frameInfo.x = SCALE_FACTOR * (frameInfo.x + BigInt(e.offsetX)) - centerX;
-        frameInfo.y = SCALE_FACTOR * (frameInfo.y + BigInt(e.offsetY)) - centerY;
-        frameInfo.stepSize = SCALE_FACTOR * frameInfo.stepSize;
+        frameInfo.x = SCALE_FACTORb * (frameInfo.x + BigInt(e.offsetX)) - BigInt(centerX);
+        frameInfo.y = SCALE_FACTORb * (frameInfo.y + BigInt(e.offsetY)) - BigInt(centerY);
+        frameInfo.stepSize = SCALE_FACTORb * frameInfo.stepSize;
         console.log(frameInfo)
         const nextFrame = getFrameRenderParams(frameInfo, width, height);
         let promises = nextFrame.map(enqueueWork);
         promises.map(p => p.then( params => {
-            copyTexture(params.yOffset, params.arr, params.height);
+            //copyTexture(params.yOffset, params.arr, params.height);
         }));
+
+        let newCenterClipSpace = {
+            x: (centerX - e.offsetX)/centerX,
+            y: (e.offsetY-centerY)/centerY,
+        };
+        let driveAnimation = setupTransition(newCenterClipSpace, SCALE_FACTOR);
         // add animation here
-        Promise.all([animate(), ...promises]).then(completeUpdate);
+        Promise.all([animate(driveAnimation), ...promises]).then(completeUpdate);
     };
     canvas.addEventListener('click', clickHandler, false);
 
     function completeUpdate([newFrameInfo, ...frames]) {
-        console.log('newFrameInfo', newFrameInfo, frames)
+        console.log('finised');
     }
 
 }
@@ -73,21 +79,15 @@ function getFrameRenderParams(frameInfo, width, canvasHeight) {
 
 window.scaleArr = [1,1]
 
-function animate() {
-    return 'not yet';
-    const segmentDuration = 2000;
+//let x = 0;
+function animate(driveAnimation) {
+    const DURATION = 2000/100;
     let start = null;
-    const step = function(ts) {
-        if (start == null) start = ts;
-        let elapsed = ts - start;
-        if (elapsed > segmentDuration) {
-            elapsed = segmentDuration;
-        } else {
+    const step = function(timeStamp) {
+        if (start == null) start = timeStamp;
+        if (driveAnimation((timeStamp - start)/DURATION)) {
             requestAnimationFrame(step);
         }
-
-        const sc = 1.0 + 0.25 * elapsed/segmentDuration;
-        render(sc);
     }
 
     requestAnimationFrame(step);

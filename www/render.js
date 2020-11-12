@@ -1,11 +1,10 @@
-console.log('hi from render');
 export default function getRenderer(gl, width, height, clickHandler) {
     const program = createProgram(gl, vertexSource, fragmentSource);
 
     let animStepSize = 5;
-    const clipSquare = [-1, 1, 1, 1, -1, -1, -1, -1, 1, 1, 1, -1];
-    const vertices = new Float32Array(clipSquare.concat(clipSquare.map(v => v * 0.8)));
-    (createPositionBuffer(gl, gl.getAttribLocation(program, "a_position")))(vertices);
+    const setVertexCoords = createPositionBuffer(
+        gl, gl.getAttribLocation(program, "a_position"))
+    setVertexCoords(getVertices());
 
     const texture0 = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
@@ -16,8 +15,7 @@ export default function getRenderer(gl, width, height, clickHandler) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
-        //new ImageData(new Uint8ClampedArray(width*(height)*4), width, height));
-        new ImageData(new Uint8ClampedArray(width*(height*2)*4), width, height*2));
+        new ImageData(new Uint8ClampedArray(2*width*height*4), width, height*2));
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);  
@@ -30,31 +28,64 @@ export default function getRenderer(gl, width, height, clickHandler) {
     const texturePing = new Float32Array(topSquare.concat(bottomSquare));
     const texturePong = new Float32Array(bottomSquare.concat(topSquare));
     let pong = true;
+    //this is gross
     const resetAnimation = function() {
         pong = !pong;
         setTextureCoords(pong ? texturePong : texturePing);
     }
+    resetAnimation();
 
     const copyTexture = function(y, arr, chunkHeight) {
         let img = new ImageData(arr, width, chunkHeight);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        let textureY = y + (pong ? height : 0);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, textureY, gl.RGBA, gl.UNSIGNED_BYTE, img);
         render();
     }
 
-    const render = function (scale) {
+    function render(scale, scaleTranslation) {
         if (!scale) scale=1;
         gl.useProgram(program);
         const scaleLocation = gl.getUniformLocation(program, "u_scale");
         gl.uniform2fv(scaleLocation, [scale, scale]);
+        const scaleTransLocation = gl.getUniformLocation(program, "u_scale_translation");
+        gl.uniform2fv(scaleTransLocation, [scaleTranslation, scaleTranslation]);
 
         // Draw the rectangle.
-        var primitiveType = gl.TRIANGLES;
-        var offset = 0;
-        var count = 12;
+        const primitiveType = gl.TRIANGLES;
+        const offset = 0;
+        const count = 12;
         gl.drawArrays(primitiveType, offset, count);
     }
-    return {resetAnimation, copyTexture, render};
+
+    const setupTransition = function({x, y}, scaleFactor) {
+        console.log(x, y, scaleFactor)
+        gl.useProgram(program);
+        const translationLocation = gl.getUniformLocation(program, "u_translation");
+        gl.uniform2fv(translationLocation, [x, y]);
+        return function(t) {
+            //t varies from 0..100
+            //console.log('driver', t, 1 + t/100 * (scaleFactor-1));
+
+            if (t < 100) {
+                render(1 + t/100 * (scaleFactor-1), t/100 * scaleFactor);
+                return true;
+            } else {
+                render(scaleFactor, scaleFactor);
+                resetAnimation();
+                return false;
+            }
+        }
+    }
+
+    return {copyTexture, setupTransition};
 }
+
+function getVertices(insetCenter, scaleFactor) {
+    const clipSquare = [-1, 1, 1, 1, -1, -1, -1, -1, 1, 1, 1, -1];
+    const vertices = new Float32Array(clipSquare.concat(clipSquare.map(v => v * 0.8)));
+    return vertices;
+}
+
 function createProgram(gl, vertexSource, fragmentSource) {
     const program = gl.createProgram();
     const createShader = (source, type) => {
@@ -104,12 +135,14 @@ attribute vec2 a_position;
 attribute vec2 a_tex;
 
 uniform vec2 u_scale;
+uniform vec2 u_translation;
+uniform vec2 u_scale_translation;
 
 varying vec2 v_texCoord;
 
 void main() {
-    vec2 scaledPosition = a_position * u_scale;
-    gl_Position = vec4(scaledPosition, 0, 1);
+    vec2 adjustedPosition = a_position * u_scale + u_translation * u_scale_translation;
+    gl_Position = vec4(adjustedPosition, 0, 1);
     v_texCoord = a_tex;
 }`;
 
