@@ -9,16 +9,15 @@ export default async function init(canvas, width, height) {
     const gl = WebGLDebugUtils.makeDebugContext(canvas.getContext("webgl"));
     const {render, copyTexture, resetAnimation} = getRenderer(gl, width, height);
     resetAnimation();
+    const enqueueWork = getTextureUpdater('./wasmwrapper.js', 4);
     const initialFrame = {x:BigInt(-340), y:BigInt(-200), stepSize : BigInt(160)}
     const initialTasks = getFrameRenderParams(initialFrame, width, height);
-    console.log('initialFrame', initialTasks)
-    const enqueueWork = getTextureUpdater('./wasmwrapper.js', 4);
     let promises = initialTasks.map(enqueueWork);
-    console.log(promises);
     promises.map(p => p.then( params => {
-        console.log('in then', params);
         copyTexture(params.yOffset, params.arr, params.height);
     }));
+    const tstart = Date.now();
+    Promise.all(promises).then( _ => console.log("did", Date.now() - tstart));
 
     const SCALE_FACTOR = BigInt(10);
     const clickHandler = function(e) {
@@ -39,8 +38,8 @@ export default async function init(canvas, width, height) {
     }
 
 }
-
-const NUM_CHUNKS = 16;
+//empirically chosen based on (high) variance of chunk render time
+const NUM_CHUNKS = 20; 
 function getFrameRenderParams(frameInfo, width, canvasHeight) {
     if (canvasHeight % NUM_CHUNKS != 0) {
         throw new Error("Bad chunk height", canvasHeight/NUM_CHUNKS);
@@ -53,7 +52,7 @@ function getFrameRenderParams(frameInfo, width, canvasHeight) {
     });
 
     let midOut = [];
-    let pa = NUM_CHUNKS/2;
+    let pa = Math.floor(NUM_CHUNKS/2);
     let pb = pa+1;
     var keepGoing;
     do {

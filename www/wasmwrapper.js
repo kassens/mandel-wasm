@@ -8,7 +8,6 @@ async function init() {
         let {x, y, stepSize, width, height} = chunk;
 
         const buffer_address = instance.exports.IMG_BUFFER.value;
-        console.log("render", x, y, stepSize, width, height);
         instance.exports.render_js(
             BigInt(stepSize), BigInt(x), width, BigInt(y), height);
 
