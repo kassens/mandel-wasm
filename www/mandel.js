@@ -21,6 +21,12 @@ export default async function init(canvas, width, height) {
     Promise.all(promises).then( _ => console.log("did", Date.now() - tstart));
 
     const clickHandler = function(e) {
+        let newCenterClipSpace = {
+            x: (centerX - e.offsetX)/centerX,
+            y: (e.offsetY-centerY)/centerY,
+        };
+        let driveAnimation = setupTransition(newCenterClipSpace, SCALE_FACTOR);
+
         frameInfo.x = SCALE_FACTORb * (frameInfo.x + BigInt(e.offsetX)) - BigInt(centerX);
         frameInfo.y = SCALE_FACTORb * (frameInfo.y + BigInt(e.offsetY)) - BigInt(centerY);
         frameInfo.stepSize = SCALE_FACTORb * frameInfo.stepSize;
@@ -28,14 +34,9 @@ export default async function init(canvas, width, height) {
         const nextFrame = getFrameRenderParams(frameInfo, width, height);
         let promises = nextFrame.map(enqueueWork);
         promises.map(p => p.then( params => {
-            //copyTexture(params.yOffset, params.arr, params.height);
+            copyTexture(params.yOffset + height, params.arr, params.height);
         }));
 
-        let newCenterClipSpace = {
-            x: (centerX - e.offsetX)/centerX,
-            y: (e.offsetY-centerY)/centerY,
-        };
-        let driveAnimation = setupTransition(newCenterClipSpace, SCALE_FACTOR);
         // add animation here
         Promise.all([animate(driveAnimation), ...promises]).then(completeUpdate);
     };
@@ -79,18 +80,21 @@ function getFrameRenderParams(frameInfo, width, canvasHeight) {
 
 window.scaleArr = [1,1]
 
-//let x = 0;
 function animate(driveAnimation) {
-    const DURATION = 2000/100;
-    let start = null;
-    const step = function(timeStamp) {
-        if (start == null) start = timeStamp;
-        if (driveAnimation((timeStamp - start)/DURATION)) {
-            requestAnimationFrame(step);
+    return new Promise((resolve, reject) => {
+        const DURATION = 2000/100;
+        let start = null;
+        const step = function(timeStamp) {
+            if (start == null) start = timeStamp;
+            if (driveAnimation((timeStamp - start)/DURATION)) {
+                requestAnimationFrame(step);
+            } else {
+                resolve();
+            }
         }
-    }
 
-    requestAnimationFrame(step);
+        requestAnimationFrame(step);
+    });
 }
 
 function fitCanvasSize(gl) {
