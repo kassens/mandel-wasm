@@ -10,11 +10,10 @@ export default function(workerFile, count) {
         makeWorker(workerFile, free);
     }
     return function(params) {
-        const promise = new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             workQueue.push({resolve, reject, params});
+            check();
         });
-        check();
-        return promise;
     }
 }
 
