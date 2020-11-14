@@ -61,7 +61,7 @@ export default function getRenderer(gl, width, height, clickHandler) {
     }
 
     const translationLocation = gl.getUniformLocation(program, "u_translation");
-    const setupTransition = function({x, y}, scaleFactor) {
+    const setupTransition = function(x, y, scaleFactor) {
         gl.uniform2fv(translationLocation, [x, y]);
         swapTextures();
         setVertexCoords(getVertices(-x, -y, scaleFactor));

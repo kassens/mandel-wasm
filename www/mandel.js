@@ -21,11 +21,9 @@ export default async function init(canvas, width, height) {
     Promise.all(promises).then( _ => console.log("did", Date.now() - tstart));
 
     const clickHandler = function(e) {
-        let newCenterClipSpace = {
-            x: (centerX - e.offsetX)/centerX,
-            y: (e.offsetY-centerY)/centerY,
-        };
-        let driveAnimation = setupTransition(newCenterClipSpace, SCALE_FACTOR);
+        const cx = (centerX - e.offsetX)/centerX;
+        const cy = (e.offsetY - centerY)/centerY;
+        let driveAnimation = setupTransition(cx, cy, SCALE_FACTOR);
 
         frameInfo.x = SCALE_FACTORb * (frameInfo.x + BigInt(e.offsetX)) - BigInt(centerX);
         frameInfo.y = SCALE_FACTORb * (frameInfo.y + BigInt(e.offsetY)) - BigInt(centerY);
