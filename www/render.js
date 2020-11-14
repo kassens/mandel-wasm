@@ -29,9 +29,21 @@ export default function getRenderer(gl, width, height, clickHandler) {
     let ping = true;
     const getTextureOffset = _ => ping ? height : 0;
     setTextureCoords(texturePing);
+    let teal = new Uint8ClampedArray(width*height*4).fill(255);
+    for (var i=0; i< teal.length; i+=4) {
+        teal[i] = 0;
+    }
+    let tealImg = new ImageData(teal, width, height);
+    let ble = Uint8ClampedArray.from(teal);
+    for (var i=1; i< ble.length; i+=4) {
+        ble[i] = 0;
+    }
+    let bleImg = new ImageData(ble, width, height);
+    const blank = new ImageData(new Uint8ClampedArray(width*height*4), width, height);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, tealImg);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, height, gl.RGBA, gl.UNSIGNED_BYTE, bleImg);
     const swapTextures = function() {
         ping = !ping;
-        let blank = new ImageData(new Uint8ClampedArray(width*height*4), width, height);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, getTextureOffset(), gl.RGBA, gl.UNSIGNED_BYTE, blank);
         setTextureCoords(ping ? texturePing : texturePong );
     }
@@ -45,11 +57,14 @@ export default function getRenderer(gl, width, height, clickHandler) {
 
     gl.useProgram(program);
     const scaleLocation = gl.getUniformLocation(program, "u_scale");
-    const scaleTransLocation = gl.getUniformLocation(program, "u_scale_translation");
+    const scaleTLocation = gl.getUniformLocation(program, "u_scale_translation");
     function render(scale, scaleTranslation) {
-        if (!scale) scale=1;
+        if (!scale) {
+            scale=1;
+            scaleTranslation = 0;
+        }
         gl.uniform2fv(scaleLocation, [scale, scale]);
-        gl.uniform2fv(scaleTransLocation, [scaleTranslation, scaleTranslation]);
+        gl.uniform2fv(scaleTLocation, [scaleTranslation, scaleTranslation]);
 
         // Draw the rectangle.
         const primitiveType = gl.TRIANGLES;
@@ -60,19 +75,17 @@ export default function getRenderer(gl, width, height, clickHandler) {
 
     const translationLocation = gl.getUniformLocation(program, "u_translation");
     const setupTransition = function({x, y}, scaleFactor) {
-        console.log(x, y, scaleFactor)
-        gl.useProgram(program);
         gl.uniform2fv(translationLocation, [x, y]);
+        swapTextures();
+        setVertexCoords(getVertices(-x, -y, scaleFactor));
+        render(1, 0);
         return function(t) {
             //t varies from 0..100
-            //console.log('driver', t, 1 + t/100 * (scaleFactor-1));
-
             if (t < 100) {
                 render(1 + t/100 * (scaleFactor-1), t/100 * scaleFactor);
                 return true;
             } else {
                 render(scaleFactor, scaleFactor);
-                resetAnimation();
                 return false;
             }
         }
@@ -81,9 +94,13 @@ export default function getRenderer(gl, width, height, clickHandler) {
     return {copyTexture, setupTransition};
 }
 
-function getVertices(insetCenter, scaleFactor) {
-    const clipSquare = [-1, 1,   1, 1,   -1, -1,   -1, -1,   1, 1,   1, -1];
-    const vertices = new Float32Array(clipSquare.concat(clipSquare));
+const backRectangle = [-1, 1,   1, 1,   -1, -1,   -1, -1,   1, 1,   1, -1];
+function getVertices(x, y, scaleFactor) {
+    //OpenGL clip space top left is (-1,1) and bottom right is (1,-1)
+    const h = 1/scaleFactor;
+    const frontRectangle = 
+        [x-h, y+h,   x+h, y+h,   x-h, y-h,   x-h, y-h,   x+h, y+h,   x+h, y-h];
+    const vertices = new Float32Array(backRectangle.concat(frontRectangle));
     return vertices;
 }
 

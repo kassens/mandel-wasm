@@ -30,11 +30,10 @@ export default async function init(canvas, width, height) {
         frameInfo.x = SCALE_FACTORb * (frameInfo.x + BigInt(e.offsetX)) - BigInt(centerX);
         frameInfo.y = SCALE_FACTORb * (frameInfo.y + BigInt(e.offsetY)) - BigInt(centerY);
         frameInfo.stepSize = SCALE_FACTORb * frameInfo.stepSize;
-        console.log(frameInfo)
         const nextFrame = getFrameRenderParams(frameInfo, width, height);
         let promises = nextFrame.map(enqueueWork);
         promises.map(p => p.then( params => {
-            copyTexture(params.yOffset + height, params.arr, params.height);
+            copyTexture(params.yOffset, params.arr, params.height);
         }));
 
         // add animation here
@@ -77,8 +76,6 @@ function getFrameRenderParams(frameInfo, width, canvasHeight) {
     } while (keepGoing)
     return midOut;
 }
-
-window.scaleArr = [1,1]
 
 function animate(driveAnimation) {
     return new Promise((resolve, reject) => {
