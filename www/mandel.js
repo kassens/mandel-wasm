@@ -12,13 +12,19 @@ export default async function init(canvas, width, height) {
     const {copyTexture, setupTransition} = getRenderer(gl, width, height);
     const enqueueWork = getTextureUpdater('./wasmwrapper.js', 8);
     let frameInfo = {x:BigInt(-340), y:BigInt(-200), stepSize : BigInt(160)}
-    const initialTasks = getFrameRenderParams(frameInfo, width, height);
-    let promises = initialTasks.map(enqueueWork);
-    promises.map(p => p.then( params => {
-        copyTexture(params.yOffset, params.arr, params.height);
-    }));
+
+    function renderFrame() {
+        const initialTasks = getFrameRenderParams(frameInfo, width, height);
+        let promises = initialTasks.map(enqueueWork);
+        promises.forEach(p => p.then( params => {
+            copyTexture(params.yOffset, params.arr, params.height);
+        }));
+        return promises;
+    }
+
     const tstart = Date.now();
-    Promise.all(promises).then( _ => console.log("did", Date.now() - tstart));
+    let initialPromises = renderFrame();
+    Promise.all(initialPromises).then( _ => console.log("Initialized", Date.now() - tstart));
 
     const clickHandler = function(e) {
         const cx = (centerX - e.offsetX)/centerX;
@@ -28,11 +34,7 @@ export default async function init(canvas, width, height) {
         frameInfo.x = SCALE_FACTORb * (frameInfo.x + BigInt(e.offsetX)) - BigInt(centerX);
         frameInfo.y = SCALE_FACTORb * (frameInfo.y + BigInt(e.offsetY)) - BigInt(centerY);
         frameInfo.stepSize = SCALE_FACTORb * frameInfo.stepSize;
-        const nextFrame = getFrameRenderParams(frameInfo, width, height);
-        let promises = nextFrame.map(enqueueWork);
-        promises.map(p => p.then( params => {
-            copyTexture(params.yOffset, params.arr, params.height);
-        }));
+        let promises = renderFrame();
 
         // add animation here
         Promise.all([animate(driveAnimation), ...promises]).then(completeUpdate);
