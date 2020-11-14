@@ -29,19 +29,7 @@ export default function getRenderer(gl, width, height, clickHandler) {
     let ping = true;
     const getTextureOffset = _ => ping ? height : 0;
     setTextureCoords(texturePing);
-    let teal = new Uint8ClampedArray(width*height*4).fill(255);
-    for (var i=0; i< teal.length; i+=4) {
-        teal[i] = 0;
-    }
-    let tealImg = new ImageData(teal, width, height);
-    let ble = Uint8ClampedArray.from(teal);
-    for (var i=1; i< ble.length; i+=4) {
-        ble[i] = 0;
-    }
-    let bleImg = new ImageData(ble, width, height);
     const blank = new ImageData(new Uint8ClampedArray(width*height*4), width, height);
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, tealImg);
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, height, gl.RGBA, gl.UNSIGNED_BYTE, bleImg);
     const swapTextures = function() {
         ping = !ping;
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, getTextureOffset(), gl.RGBA, gl.UNSIGNED_BYTE, blank);
@@ -52,21 +40,20 @@ export default function getRenderer(gl, width, height, clickHandler) {
         let img = new ImageData(arr, width, chunkHeight);
         let textureY = y + getTextureOffset();
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, textureY, gl.RGBA, gl.UNSIGNED_BYTE, img);
-        render();
+        draw();
     }
 
     gl.useProgram(program);
     const scaleLocation = gl.getUniformLocation(program, "u_scale");
     const scaleTLocation = gl.getUniformLocation(program, "u_scale_translation");
-    function render(scale, scaleTranslation) {
-        if (!scale) {
-            scale=1;
-            scaleTranslation = 0;
-        }
+    function updateScale(scale, scaleTranslation) {
         gl.uniform2fv(scaleLocation, [scale, scale]);
         gl.uniform2fv(scaleTLocation, [scaleTranslation, scaleTranslation]);
+        draw();
+    }
+    updateScale(1,0);
 
-        // Draw the rectangle.
+    function draw() {
         const primitiveType = gl.TRIANGLES;
         const offset = 0;
         const count = 12;
@@ -78,14 +65,14 @@ export default function getRenderer(gl, width, height, clickHandler) {
         gl.uniform2fv(translationLocation, [x, y]);
         swapTextures();
         setVertexCoords(getVertices(-x, -y, scaleFactor));
-        render(1, 0);
+        updateScale(1,0);
         return function(t) {
             //t varies from 0..100
             if (t < 100) {
-                render(1 + t/100 * (scaleFactor-1), t/100 * scaleFactor);
+                updateScale(1 + t/100 * (scaleFactor-1), t/100 * scaleFactor);
                 return true;
             } else {
-                render(scaleFactor, scaleFactor);
+                updateScale(scaleFactor, scaleFactor);
                 return false;
             }
         }
@@ -176,3 +163,11 @@ void main() {
    gl_FragColor = color0;
    
 }`;
+/*
+    let teal = new Uint8ClampedArray(width*height*4).fill(255);
+    for (var i=0; i< teal.length; i+=4) {
+        teal[i] = 0;
+    }
+    let tealImg = new ImageData(teal, width, height);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, tealImg);
+*/
