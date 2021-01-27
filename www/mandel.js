@@ -42,7 +42,7 @@ export default async function init(canvas, width, height) {
     canvas.addEventListener('click', clickHandler, false);
 
     function completeUpdate([newFrameInfo, ...frames]) {
-        console.log('finised');
+        console.log('finished');
     }
 
 }

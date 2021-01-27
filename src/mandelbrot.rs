@@ -84,7 +84,7 @@ fn test_render_map() {
 fn calc_z(cx: Fix, cy: Fix) -> usize {
     let bx: Fix = Fix::from_num(cx);
     let by: Fix = Fix::from_num(cy);
-    let clamp: Fix = Fix::from_num(4);
+    let clamp: Fix = Fix::from_num(2);
     let c = Complex::new(bx, by);
 
     let mut i = 0;
@@ -100,7 +100,7 @@ fn calc_z(cx: Fix, cy: Fix) -> usize {
 
 fn clamp_norm(opt_lz: MaybeComplex, clamp: Fix) -> bool {
     match norm_square(opt_lz) {
-        Some(n) => n < clamp,
+        Some(n) => n <= clamp,
         None => false
     }
 }
