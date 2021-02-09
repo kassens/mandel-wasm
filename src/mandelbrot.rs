@@ -81,11 +81,9 @@ fn test_render_map() {
     }
 }
 
-fn calc_z(cx: Fix, cy: Fix) -> usize {
-    let bx: Fix = Fix::from_num(cx);
-    let by: Fix = Fix::from_num(cy);
+fn calc_z(re: Fix, im: Fix) -> usize {
     let clamp: Fix = Fix::from_num(2);
-    let c = Complex::new(bx, by);
+    let c = Complex::new(re, im);
 
     let mut i = 0;
     let mut z = Some(c);
